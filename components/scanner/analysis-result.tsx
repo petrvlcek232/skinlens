@@ -1,32 +1,17 @@
 "use client";
 
-import { useMemo } from "react";
-import { analyzeScan, type Severity } from "@/lib/analysis/analyze";
-import type { ScanResult } from "@/lib/vision/types";
+import { ScoreGauge } from "./score-gauge";
+import { ConcernRadar } from "./concern-radar";
+import type { Severity, SkinAnalysis } from "@/lib/analysis/analyze";
 import { cn } from "@/lib/utils";
 
 const SEVERITY: Record<
   Severity,
   { dot: string; bar: string; chip: string; label: string }
 > = {
-  good: {
-    dot: "bg-sage",
-    bar: "bg-sage",
-    chip: "bg-sage-soft text-sage",
-    label: "Looking good",
-  },
-  moderate: {
-    dot: "bg-amber",
-    bar: "bg-amber",
-    chip: "bg-amber-soft text-amber",
-    label: "Worth watching",
-  },
-  attention: {
-    dot: "bg-accent",
-    bar: "bg-accent",
-    chip: "bg-accent-soft text-accent-ink",
-    label: "Needs attention",
-  },
+  good: { dot: "bg-sage", bar: "bg-sage", chip: "bg-sage-soft text-sage", label: "Looking good" },
+  moderate: { dot: "bg-amber", bar: "bg-amber", chip: "bg-amber-soft text-amber", label: "Worth watching" },
+  attention: { dot: "bg-accent", bar: "bg-accent", chip: "bg-accent-soft text-accent-ink", label: "Needs attention" },
 };
 
 function overallSeverity(score: number): Severity {
@@ -35,30 +20,25 @@ function overallSeverity(score: number): Severity {
   return "attention";
 }
 
-export function AnalysisResult({ result }: { result: ScanResult }) {
-  const analysis = useMemo(() => analyzeScan(result), [result]);
+export function AnalysisResult({ analysis }: { analysis: SkinAnalysis }) {
   const sev = overallSeverity(analysis.overallScore);
 
   return (
     <div className="w-full">
-      <div className="flex items-center gap-4 rounded-[var(--radius-card)] border border-line bg-paper-raised p-5">
-        <div className="flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-full ring-2 ring-line">
-          <span className="text-2xl font-semibold leading-none text-ink">
-            {analysis.overallScore}
-          </span>
-          <span className="mt-0.5 text-[10px] uppercase tracking-wide text-ink-soft">
-            / 100
+      <div className="flex flex-col items-center gap-4 rounded-[var(--radius-card)] border border-line bg-paper-raised p-5 sm:flex-row sm:items-center sm:gap-2">
+        <div className="flex flex-col items-center sm:w-1/2">
+          <ScoreGauge score={analysis.overallScore} severity={sev} />
+          <span
+            className={cn(
+              "mt-2 rounded-full px-3 py-1 text-xs font-medium",
+              SEVERITY[sev].chip,
+            )}
+          >
+            {SEVERITY[sev].label}
           </span>
         </div>
-        <div>
-          <p className="text-sm font-medium text-ink-soft">Skin Score</p>
-          <p className="text-lg font-semibold text-ink">
-            {SEVERITY[sev].label}
-          </p>
-          <p className="mt-0.5 text-xs text-ink-soft">
-            Weighted across {analysis.concerns.length} concerns · relative to
-            your own skin
-          </p>
+        <div className="w-full sm:w-1/2">
+          <ConcernRadar concerns={analysis.concerns} />
         </div>
       </div>
 

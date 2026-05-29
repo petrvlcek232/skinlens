@@ -149,3 +149,27 @@ threshold, these tests fail.
 Wired a first result surface (`AnalysisResult`): composite score + four concern
 rows with severity, bars and plain-language detail. Phase 5 upgrades this to a
 gauge + radar + annotated face. 44 tests green.
+
+---
+
+## Phase 5 — Result UI
+
+Turned the functional result into the payoff screen:
+
+- **`ScoreGauge`** — animated radial SVG arc (draws in via `stroke-dashoffset`),
+  severity-colored, with a `NumberTicker` count-up. New reduced-motion-safe
+  motion primitive at `components/shared/motion/number-ticker.tsx`.
+- **`ConcernRadar`** — Recharts radar of the four concern scores.
+- **Annotated face heatmap** — `CapturedPreview` now colors each region by its
+  concern's severity (green/amber/coral), so the visual ties straight back to the
+  numbers (Revieve LiveAR-style). Region→concern map: forehead→texture,
+  cheeks+nose→redness, under-eye→under-eye.
+
+Analysis is computed once in the widget (`useMemo`) and shared by the heatmap and
+the score surface — no double compute.
+
+**Gotcha (again, harmless).** Renaming `AnalysisResult`'s prop from `result` to
+`analysis` tripped another Fast Refresh stale-state error
+(`undefined is not an object (analysis.overallScore)`). The render path is guarded
+(`step === "result" && result && analysis`); a full reload clears it. HMR
+artifact, not a bug — same class as the Phase 3 one.

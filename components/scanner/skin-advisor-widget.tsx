@@ -1,35 +1,39 @@
 "use client";
 
-import { useState } from "react";
-import { RotateCcw, CheckCircle2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { RotateCcw } from "lucide-react";
 import { FaceScanner } from "./face-scanner";
 import { CapturedPreview } from "./captured-preview";
 import { AnalysisResult } from "./analysis-result";
 import { Button } from "@/components/ui/button";
+import { analyzeScan } from "@/lib/analysis/analyze";
 import type { ScanResult } from "@/lib/vision/types";
 
 type Step = "scan" | "result";
 
 /**
- * Orchestrates the analyzer flow. Today: real-time scan → result proof. The
- * metric + recommendation steps slot in here as the funnel grows.
+ * Orchestrates the analyzer flow: real-time scan → analysis result. The
+ * recommendation step slots in here next. Analysis is computed once and shared
+ * by the annotated-face heatmap and the score/radar surface.
  */
 export function SkinAdvisorWidget() {
   const [step, setStep] = useState<Step>("scan");
   const [result, setResult] = useState<ScanResult | null>(null);
 
-  if (step === "result" && result) {
+  const analysis = useMemo(
+    () => (result ? analyzeScan(result) : null),
+    [result],
+  );
+
+  if (step === "result" && result && analysis) {
     return (
       <div className="w-full max-w-md mx-auto">
         <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[var(--radius-card)] bg-ink/95 shadow-lg ring-1 ring-line">
-          <CapturedPreview result={result} />
-          <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-sage/90 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            {result.framesAccumulated} frames averaged
-          </div>
+          <CapturedPreview result={result} analysis={analysis} />
         </div>
+
         <div className="mt-4">
-          <AnalysisResult result={result} />
+          <AnalysisResult analysis={analysis} />
         </div>
 
         <div className="mt-5 flex flex-col items-center gap-2">
