@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/*
+ * Explicit source globs. Tailwind v4 auto-detects sources from the build cwd,
+ * which is brittle when the dev server is launched from a different directory.
+ * Declaring them relative to this stylesheet makes utility generation
+ * deterministic regardless of cwd.
+ */
+@source "../app/**/*.{ts,tsx}";
+@source "../components/**/*.{ts,tsx}";
+@source "../hooks/**/*.{ts,tsx}";
+
+/*
+ * SkinLens design tokens — a calm, clinical-premium beauty palette.
+ * Warm paper background, deep ink text, a single coral accent, and a
+ * supporting sage for "healthy / good" signals. Light by default;
+ * the analyzer is a trust surface, so we stay bright and clean.
+ */
+@theme {
+  --color-paper: #faf7f3;
+  --color-paper-raised: #ffffff;
+  --color-ink: #1c1a19;
+  --color-ink-soft: #6b6560;
+  --color-line: #ebe4dc;
+
+  --color-accent: #e0654a;
+  --color-accent-soft: #f7d9d0;
+  --color-accent-ink: #a8401f;
+
+  --color-sage: #5b8a72;
+  --color-sage-soft: #d8e7df;
+
+  --color-amber: #c98a2b;
+  --color-amber-soft: #f2e3c8;
+
+  --radius-card: 1.25rem;
+
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Honour reduced-motion globally for any CSS-driven animation. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
