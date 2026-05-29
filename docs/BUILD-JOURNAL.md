@@ -252,6 +252,14 @@ set (8 → 14): forehead band **raised above the brow**, plus the line-prone zon
 that actually matter to that persona: **crow's feet** (outer eye corners),
 **nasolabial folds**, **perioral** (under-nose) and **chin**. The fine-lines
 concern now reads forehead horizontal-line energy *plus* crow's-feet and
-nasolabial texture. The heatmap consequently covers the whole expressive face,
-not just the centre. (Embed route + brand demo deferred to finish this visual
-pass first.)
+nasolabial texture.
+
+**Iteration — a real face heatmap, clipped to the mesh.** Soft blobs still read
+as "blurred circles," and the crow's-feet blobs spilled *outside* the face. Fixed
+both: `lib/vision/face-oval.ts` builds the face-oval polygon from the MediaPipe
+FACE_OVAL connections (unique vertices sorted by angle around the centroid), and
+`drawHeatmap` now **clips to that polygon**, lays a baseline tint over the whole
+face, and uses larger overlapping blobs that merge into one continuous map. So
+the whole mesh surface reads as a heatmap and nothing paints outside the face.
+Crow's-feet regions were also pulled inward to stay on-skin. (Embed route + brand
+demo deferred to finish this visual pass first.)

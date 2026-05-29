@@ -109,9 +109,9 @@ export function deriveRegions(
     { id: "forehead", center: foreheadMid, radius: 0.16 * d },
     { id: "foreheadLeft", center: offset(foreheadMid, right, down, 0.5, 0, d), radius: 0.13 * d },
     { id: "foreheadRight", center: offset(foreheadMid, right, down, -0.5, 0, d), radius: 0.13 * d },
-    // Crow's feet at the outer eye corners.
-    { id: "outerEyeRight", center: offset(eyeR, right, down, -0.62, 0.06, d), radius: 0.1 * d },
-    { id: "outerEyeLeft", center: offset(eyeL, right, down, 0.62, 0.06, d), radius: 0.1 * d },
+    // Crow's feet, just lateral to the outer eye corners — kept inside the face.
+    { id: "outerEyeRight", center: offset(eyeR, right, down, -0.4, 0.12, d), radius: 0.09 * d },
+    { id: "outerEyeLeft", center: offset(eyeL, right, down, 0.4, 0.12, d), radius: 0.09 * d },
     // Under-eye.
     { id: "underEyeRight", center: offset(eyeR, right, down, -0.05, 0.36, d), radius: 0.1 * d },
     { id: "underEyeLeft", center: offset(eyeL, right, down, 0.05, 0.36, d), radius: 0.1 * d },

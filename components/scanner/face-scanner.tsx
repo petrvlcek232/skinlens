@@ -14,12 +14,18 @@ import { assessLighting, type LightingQuality } from "@/lib/vision/lighting";
 import { deriveRegions, type RegionCircle } from "@/lib/vision/regions";
 import { sampleRegions } from "@/lib/vision/sampling";
 import { drawHeatmap } from "@/lib/vision/heatmap";
+import { faceOvalPolygon } from "@/lib/vision/face-oval";
 import {
   createAccumulator,
   accumulateFrame,
   finalizeScan,
 } from "@/lib/vision/scan";
-import type { Landmark, SampledRegion, ScanResult } from "@/lib/vision/types";
+import type {
+  Landmark,
+  Point2D,
+  SampledRegion,
+  ScanResult,
+} from "@/lib/vision/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -212,7 +218,12 @@ export function FaceScanner({ onScanComplete }: FaceScannerProps) {
                 notReadyStreak = 0;
                 if (sampled) accumulateFrame(accumulatorRef.current, sampled);
                 const p = Math.min(1, (now - scanStartRef.current) / SCAN_DURATION_MS);
-                drawScanOverlay(ctx, regions, p);
+                drawScanOverlay(
+                  ctx,
+                  regions,
+                  p,
+                  faceOvalPolygon(face ?? [], canvas.width, canvas.height),
+                );
                 const pct = Math.round(p * 100);
                 if (pct !== lastProgress) {
                   lastProgress = pct;
@@ -362,6 +373,7 @@ function drawScanOverlay(
   ctx: CanvasRenderingContext2D,
   regions: RegionCircle[],
   progress: number,
+  clip: Point2D[],
 ) {
   const { width, height } = ctx.canvas;
 
@@ -388,7 +400,7 @@ function drawScanOverlay(
       radius: region.radius,
       rgb: [224, 101, 74] as [number, number, number],
     })),
-    0.4 + 0.6 * progress,
+    { intensity: 0.4 + 0.6 * progress, clip },
   );
 }
 

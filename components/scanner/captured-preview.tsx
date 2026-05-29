@@ -7,6 +7,7 @@ import {
   type NormalizedLandmark,
 } from "@mediapipe/tasks-vision";
 import { deriveRegions } from "@/lib/vision/regions";
+import { faceOvalPolygon } from "@/lib/vision/face-oval";
 import { drawHeatmap, type HeatPoint } from "@/lib/vision/heatmap";
 import type { RegionId, ScanResult } from "@/lib/vision/types";
 import type { ConcernId, Severity, SkinAnalysis } from "@/lib/analysis/analyze";
@@ -82,7 +83,8 @@ export function CapturedPreview({ result, analysis }: CapturedPreviewProps) {
       radius: r.radius,
       rgb: rgbFor(r.id),
     }));
-    drawHeatmap(ctx, points, 1);
+    const clip = faceOvalPolygon(result.landmarks, result.width, result.height);
+    drawHeatmap(ctx, points, { intensity: 1, clip });
   }, [result, analysis]);
 
   return (
