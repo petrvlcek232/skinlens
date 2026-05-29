@@ -60,10 +60,10 @@ describe("deriveRegions", () => {
     expect(deriveRegions(few, W, H)).toBeNull();
   });
 
-  it("produces all six regions with positive radii inside the frame", () => {
+  it("produces all regions with positive radii inside the frame", () => {
     const regions = deriveRegions(syntheticFace(), W, H);
     expect(regions).not.toBeNull();
-    expect(regions!).toHaveLength(6);
+    expect(regions!).toHaveLength(8);
     for (const r of regions!) {
       expect(r.radius).toBeGreaterThan(0);
       expect(r.center.x).toBeGreaterThan(0);
@@ -103,7 +103,7 @@ describe("deriveRegions", () => {
   it("is tilt-robust: a 20° head tilt keeps every region in-frame and sized", () => {
     const regions = deriveRegions(syntheticFace(20), W, H);
     expect(regions).not.toBeNull();
-    expect(regions!).toHaveLength(6);
+    expect(regions!).toHaveLength(8);
     for (const r of regions!) {
       expect(r.radius).toBeGreaterThan(0);
       expect(r.center.x).toBeGreaterThan(0);

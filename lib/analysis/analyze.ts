@@ -7,7 +7,7 @@ import {
   toneSpread,
   scoreFromDelta,
 } from "./metrics";
-import { laplacianVariance } from "./texture";
+import { laplacianVariance, horizontalLineEnergy } from "./texture";
 
 export type ConcernId = "redness" | "evenness" | "underEye" | "texture";
 export type Severity = "good" | "moderate" | "attention";
@@ -60,9 +60,9 @@ function underEyeDetail(delta: number): string {
 }
 
 function textureDetail(score: number): string {
-  if (score >= 75) return "Skin reads as smooth in the forehead zone.";
-  if (score >= 50) return "Some visible texture in the forehead zone.";
-  return "Pronounced texture detected — heuristic estimate, lighting-sensitive.";
+  if (score >= 75) return "Forehead reads smooth — little visible texture or lines.";
+  if (score >= 50) return "Some texture and fine lines across the forehead.";
+  return "Pronounced lines/texture on the forehead — heuristic estimate, lighting-sensitive.";
 }
 
 /**
@@ -82,21 +82,33 @@ export function analyzeScan(result: ScanResult): SkinAnalysis {
   const spread = toneSpread(lab);
   const evenness = scoreFromDelta(spread, 3, 14, 45);
 
-  let textureVar = 0;
+  // Texture & fine lines: read the forehead band (centre + both sides). Combine
+  // isotropic texture (Laplacian variance) with horizontal-line energy, since
+  // forehead expression lines run horizontally.
   const regions = deriveRegions(
     result.landmarks,
     result.width,
     result.height,
   );
-  const forehead = regions?.find((r) => r.id === "forehead");
-  if (forehead) {
-    textureVar = laplacianVariance(
-      result.imageData,
-      forehead.center,
-      Math.max(4, Math.round(forehead.radius * 0.7)),
-    );
+  const foreheadPatches = (regions ?? []).filter(
+    (r) =>
+      r.id === "forehead" ||
+      r.id === "foreheadLeft" ||
+      r.id === "foreheadRight",
+  );
+  let texture = 100;
+  if (foreheadPatches.length > 0) {
+    let lapSum = 0;
+    let lineSum = 0;
+    for (const patch of foreheadPatches) {
+      const half = Math.max(4, Math.round(patch.radius * 0.8));
+      lapSum += laplacianVariance(result.imageData, patch.center, half);
+      lineSum += horizontalLineEnergy(result.imageData, patch.center, half);
+    }
+    const lapScore = scoreFromDelta(lapSum / foreheadPatches.length, 0.002, 0.02, 40);
+    const lineScore = scoreFromDelta(lineSum / foreheadPatches.length, 0.04, 0.12, 40);
+    texture = Math.round(0.5 * lapScore + 0.5 * lineScore);
   }
-  const texture = scoreFromDelta(textureVar, 0.002, 0.02, 40);
 
   const concerns: ConcernResult[] = [
     {
@@ -122,7 +134,7 @@ export function analyzeScan(result: ScanResult): SkinAnalysis {
     },
     {
       id: "texture",
-      label: "Texture & smoothness",
+      label: "Texture & fine lines",
       score: texture,
       severity: severityOf(texture),
       detail: textureDetail(texture),

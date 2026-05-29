@@ -1,13 +1,21 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import {
+  DrawingUtils,
+  FaceLandmarker,
+  type NormalizedLandmark,
+} from "@mediapipe/tasks-vision";
 import { deriveRegions } from "@/lib/vision/regions";
+import { drawHeatmap, type HeatPoint } from "@/lib/vision/heatmap";
 import type { RegionId, ScanResult } from "@/lib/vision/types";
 import type { ConcernId, Severity, SkinAnalysis } from "@/lib/analysis/analyze";
 
-/** Which concern's severity colors each region in the annotated heatmap. */
+/** Which concern's severity colors each region in the heatmap. */
 const REGION_CONCERN: Record<RegionId, ConcernId> = {
   forehead: "texture",
+  foreheadLeft: "texture",
+  foreheadRight: "texture",
   noseTzone: "redness",
   leftCheek: "redness",
   rightCheek: "redness",
@@ -15,22 +23,23 @@ const REGION_CONCERN: Record<RegionId, ConcernId> = {
   underEyeRight: "underEye",
 };
 
-const SEVERITY_HEX: Record<Severity, string> = {
-  good: "#5b8a72",
-  moderate: "#c98a2b",
-  attention: "#e0654a",
+const SEVERITY_RGB: Record<Severity, [number, number, number]> = {
+  good: [91, 138, 114],
+  moderate: [201, 138, 43],
+  attention: [224, 101, 74],
 };
+
+const NEUTRAL: [number, number, number] = [224, 101, 74];
 
 interface CapturedPreviewProps {
   result: Pick<ScanResult, "imageData" | "landmarks" | "width" | "height">;
-  /** When provided, each region is colored by its concern's severity. */
   analysis?: SkinAnalysis | null;
 }
 
 /**
- * Renders the final scan frame with the sampled regions overlaid. With an
- * analysis, regions become a severity heatmap (Revieve LiveAR-style) — green
- * good, amber watch, coral attention — tying the visual back to the scores.
+ * The final scan frame as a face-mesh heatmap: a faint tesselation overlay plus
+ * soft severity-colored blobs over the measured regions — green good, amber
+ * watch, coral attention (Revieve LiveAR-style), tying the visual to the scores.
  */
 export function CapturedPreview({ result, analysis }: CapturedPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -45,36 +54,36 @@ export function CapturedPreview({ result, analysis }: CapturedPreviewProps) {
 
     ctx.putImageData(result.imageData, 0, 0);
 
+    // Faint mesh under the heatmap for the "AI surface" read.
+    const drawing = new DrawingUtils(ctx);
+    drawing.drawConnectors(
+      result.landmarks as unknown as NormalizedLandmark[],
+      FaceLandmarker.FACE_LANDMARKS_TESSELATION,
+      { color: "rgba(255,255,255,0.12)", lineWidth: 0.5 },
+    );
+
     const regions = deriveRegions(result.landmarks, result.width, result.height);
     if (!regions) return;
 
-    const severityFor = (id: RegionId): string => {
-      if (!analysis) return "#e0654a";
-      const concern = analysis.concerns.find(
-        (c) => c.id === REGION_CONCERN[id],
-      );
-      return concern ? SEVERITY_HEX[concern.severity] : "#e0654a";
+    const rgbFor = (id: RegionId): [number, number, number] => {
+      if (!analysis) return NEUTRAL;
+      const concern = analysis.concerns.find((c) => c.id === REGION_CONCERN[id]);
+      return concern ? SEVERITY_RGB[concern.severity] : NEUTRAL;
     };
 
-    for (const region of regions) {
-      const color = severityFor(region.id);
-      ctx.beginPath();
-      ctx.arc(region.center.x, region.center.y, region.radius, 0, Math.PI * 2);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = Math.max(2, result.width / 320);
-      ctx.stroke();
-      ctx.globalAlpha = 0.18;
-      ctx.fillStyle = color;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
+    const points: HeatPoint[] = regions.map((r) => ({
+      center: r.center,
+      radius: r.radius,
+      rgb: rgbFor(r.id),
+    }));
+    drawHeatmap(ctx, points, 1);
   }, [result, analysis]);
 
   return (
     <canvas
       ref={canvasRef}
       className="h-full w-full object-cover [transform:scaleX(-1)]"
-      aria-label="Captured photo with skin-analysis regions highlighted by severity"
+      aria-label="Face heatmap of the skin analysis by region severity"
     />
   );
 }

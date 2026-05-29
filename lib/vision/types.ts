@@ -33,6 +33,8 @@ export interface Point2D {
 
 export type RegionId =
   | "forehead"
+  | "foreheadLeft"
+  | "foreheadRight"
   | "leftCheek"
   | "rightCheek"
   | "underEyeLeft"

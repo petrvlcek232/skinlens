@@ -96,9 +96,13 @@ export function deriveRegions(
   // All offsets are in units of the inter-eye distance `d`, so the regions
   // scale with face size and ride the tilt-robust local frame. Cheeks sit
   // outward on the "apples" (clear of nose, lips and beard line); under-eye
-  // sits directly below each eye; forehead stays below the hairline.
+  // sits directly below each eye; the forehead is sampled as a band (centre +
+  // both sides) — that's where horizontal lines form, so it earns more coverage.
+  const foreheadMid = lerp(eyeMid, foreheadTop, 0.48);
   const regions: RegionCircle[] = [
-    { id: "forehead", center: lerp(eyeMid, foreheadTop, 0.48), radius: 0.18 * d },
+    { id: "forehead", center: foreheadMid, radius: 0.17 * d },
+    { id: "foreheadLeft", center: offset(foreheadMid, right, down, 0.5, 0, d), radius: 0.14 * d },
+    { id: "foreheadRight", center: offset(foreheadMid, right, down, -0.5, 0, d), radius: 0.14 * d },
     { id: "rightCheek", center: offset(eyeR, right, down, -0.45, 0.62, d), radius: 0.15 * d },
     { id: "leftCheek", center: offset(eyeL, right, down, 0.45, 0.62, d), radius: 0.15 * d },
     { id: "underEyeRight", center: offset(eyeR, right, down, -0.05, 0.36, d), radius: 0.1 * d },

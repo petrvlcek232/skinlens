@@ -255,3 +255,29 @@ feed (documented in the UI). Deterministic + reason-tied means the logic is
 testable, explainable, and never a blind upsell — recommendations a user (and a
 reviewer) can trust. The cap keeps the routine realistic rather than selling the
 whole catalog.
+
+---
+
+## ADR-014 — Forehead band + heatmap visualization
+
+**Context.** Two requests after seeing the result: (1) involve the forehead more
+(it's where expression lines form), (2) replace the discrete region circles with
+a face heatmap.
+
+**Decision.** (a) Sample the **forehead as a band** — centre + left + right
+(`foreheadLeft`/`foreheadRight` added to `RegionId`) — and enhance the texture
+concern into **"Texture & fine lines"**: combine isotropic Laplacian variance
+with **horizontal-line energy** (mean absolute *vertical* gradient, which
+responds to horizontal edges — the orientation of forehead lines). (b) Render the
+live scan and the result as a **soft heatmap** (`lib/vision/heatmap.ts`):
+overlapping radial-gradient blobs over the measured regions, severity-colored on
+the result, fading in with progress during the scan, over a faint mesh.
+
+**Rationale.** The forehead band gives the heatmap a continuous brow region and
+improves tone-evenness coverage, and a *directional* line measure is a more honest
+"fine lines" signal than isotropic texture. It stays an explicit **heuristic** —
+luminance-normalized, lighting-sensitive, low-weighted, and labelled as an
+estimate, **not** clinical wrinkle grading (consistent with ADR-006). Tested for
+directionality: horizontal stripes score far higher than vertical ones. The
+heatmap reads like Revieve/Perfect Corp LiveAR and ties the visual directly to
+per-region severity, which discrete circles didn't convey.

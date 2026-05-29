@@ -13,6 +13,7 @@ import { assessFraming, type Framing } from "@/lib/vision/quality";
 import { assessLighting, type LightingQuality } from "@/lib/vision/lighting";
 import { deriveRegions, type RegionCircle } from "@/lib/vision/regions";
 import { sampleRegions } from "@/lib/vision/sampling";
+import { drawHeatmap } from "@/lib/vision/heatmap";
 import {
   createAccumulator,
   accumulateFrame,
@@ -379,22 +380,16 @@ function drawScanOverlay(
   ctx.lineTo(width, y);
   ctx.stroke();
 
-  for (const region of regions) {
-    const { x, y: cy } = region.center;
-    const r = region.radius;
-    ctx.beginPath();
-    ctx.arc(x, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(224,101,74,${0.1 + 0.2 * progress})`;
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.5)";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x, cy, r + 3, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
-    ctx.strokeStyle = "rgba(224,101,74,0.95)";
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-  }
+  // Heatmap blobs fade in as the scan fills — a live thermal map over the face.
+  drawHeatmap(
+    ctx,
+    regions.map((region) => ({
+      center: region.center,
+      radius: region.radius,
+      rgb: [224, 101, 74] as [number, number, number],
+    })),
+    0.4 + 0.6 * progress,
+  );
 }
 
 function CircularGuide({ active, scanning }: { active: boolean; scanning: boolean }) {

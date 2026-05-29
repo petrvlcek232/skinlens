@@ -56,3 +56,37 @@ export function laplacianVariance(
     laplacians.reduce((a, b) => a + (b - m) ** 2, 0) / laplacians.length;
   return variance / (meanL * meanL);
 }
+
+/**
+ * Horizontal-line energy: mean absolute vertical gradient (gray[y+1] − gray[y−1])
+ * over a patch, luminance-normalized. A vertical gradient responds to
+ * *horizontal* edges — the orientation of forehead expression lines — so this is
+ * a more targeted "fine lines" estimate than isotropic Laplacian. Still a
+ * heuristic (lighting/resolution-sensitive), not clinical wrinkle grading.
+ */
+export function horizontalLineEnergy(
+  img: ImageLike,
+  center: Point2D,
+  half: number,
+): number {
+  const cx = Math.round(center.x);
+  const cy = Math.round(center.y);
+  const xs = Math.max(1, cx - half);
+  const xe = Math.min(img.width - 2, cx + half);
+  const ys = Math.max(1, cy - half);
+  const ye = Math.min(img.height - 2, cy + half);
+
+  let sumGrad = 0;
+  let sumL = 0;
+  let count = 0;
+  for (let y = ys; y <= ye; y++) {
+    for (let x = xs; x <= xe; x++) {
+      sumGrad += Math.abs(gray(img, x, y + 1) - gray(img, x, y - 1));
+      sumL += gray(img, x, y);
+      count++;
+    }
+  }
+  if (count === 0) return 0;
+  const meanL = sumL / count || 1;
+  return sumGrad / count / meanL;
+}

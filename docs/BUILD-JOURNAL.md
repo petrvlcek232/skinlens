@@ -223,3 +223,25 @@ clinical claims) and a deterministic mapping (`recommend.ts`)
 `Recommendations` renders the routine as step cards with an add/remove toggle and
 a running total — the conversion surface, minus a real cart (a demo). 57 tests
 green.
+
+---
+
+## Phase 6.5 — Forehead band + heatmap (pre-embed polish)
+
+Two requests after the full funnel worked: involve the forehead more (where lines
+form), and swap the discrete circles for a face heatmap
+([ADR-014](./DECISIONS.md#adr-014--forehead-band--heatmap-visualization)).
+
+- **Forehead band** — added `foreheadLeft`/`foreheadRight` regions, so the brow
+  is sampled across centre + sides. The texture concern became **"Texture & fine
+  lines"**, combining Laplacian variance with **horizontal-line energy** (vertical
+  gradient → responds to horizontal forehead lines). Kept explicitly heuristic and
+  low-weighted; a directionality test proves horizontal stripes score higher than
+  vertical. Not clinical wrinkle grading — held the ADR-006 line.
+- **Heatmap** — `lib/vision/heatmap.ts` draws overlapping soft radial blobs.
+  Result: severity-colored over a faint mesh (a true face-mesh heatmap). Live
+  scan: accent blobs that fade in with progress, replacing the circles. Reads like
+  LiveAR and maps the visual straight to the scores.
+
+63 tests green. (Embed route + brand demo deferred to finish this visual pass
+first.)
