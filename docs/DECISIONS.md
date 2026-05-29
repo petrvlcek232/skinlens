@@ -281,3 +281,26 @@ estimate, **not** clinical wrinkle grading (consistent with ADR-006). Tested for
 directionality: horizontal stripes score far higher than vertical ones. The
 heatmap reads like Revieve/Perfect Corp LiveAR and ties the visual directly to
 per-region severity, which discrete circles didn't convey.
+
+---
+
+## ADR-015 — Camera on explicit gesture; quiet MediaPipe; cross-browser
+
+**Context.** The widget auto-started the camera on mount, so embedding it in a
+storefront (`/demo` iframe) fired a permission prompt the instant the page
+loaded — wrong for a real shop. Separately, MediaPipe's WASM prints info/warn
+lines that tripped the Next dev error overlay.
+
+**Decision.** (1) **Never request the camera on mount** — the widget shows a
+launch screen and calls `getUserMedia` only when the user taps "Start skin
+analysis." (2) A tiny `silenceMediaPipeLogs()` console filter drops only
+MediaPipe's known-noisy lines (XNNPACK, GL error-checking, feedback-manager).
+(3) Treat Chrome/Safari/Edge/Firefox + mobile as first-class: `playsInline` +
+muted video, standard `getUserMedia`, responsive layouts, and the embed iframe
+carries `allow="camera"`.
+
+**Rationale.** A camera prompt on page load is a trust-killer in a storefront and
+the fastest way to get the widget removed; gating on a gesture is both better UX
+and required for a believable embed demo. The log filter is surgical (specific
+strings only) so real errors still surface. Cross-browser + responsive is
+non-negotiable for a beauty audience that is overwhelmingly on mobile.

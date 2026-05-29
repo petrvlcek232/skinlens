@@ -4,6 +4,7 @@ import {
   type FaceLandmarkerResult,
 } from "@mediapipe/tasks-vision";
 import { WASM_BASE_URL, FACE_LANDMARKER_MODEL_URL } from "./config";
+import { silenceMediaPipeLogs } from "./silence-mediapipe";
 
 type RunningMode = "VIDEO" | "IMAGE";
 
@@ -20,6 +21,7 @@ const cache: Partial<Record<RunningMode, Promise<FaceLandmarker>>> = {};
 export async function getFaceLandmarker(
   mode: RunningMode,
 ): Promise<FaceLandmarker> {
+  silenceMediaPipeLogs();
   const existing = cache[mode];
   if (existing) return existing;
 

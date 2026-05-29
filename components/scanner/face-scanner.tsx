@@ -57,6 +57,7 @@ export function FaceScanner({ onScanComplete }: FaceScannerProps) {
   const scanStartRef = useRef(0);
   const accumulatorRef = useRef(createAccumulator());
 
+  const [started, setStarted] = useState(false);
   const [modelReady, setModelReady] = useState(false);
   const [modelError, setModelError] = useState(false);
   const [framing, setFraming] = useState<Framing>(INITIAL_FRAMING);
@@ -65,7 +66,10 @@ export function FaceScanner({ onScanComplete }: FaceScannerProps) {
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  useEffect(() => {
+  // Camera is requested only on explicit user action — never on mount — so the
+  // widget can sit on a page (or in a brand's iframe) without prompting.
+  const begin = useCallback(() => {
+    setStarted(true);
     void start();
   }, [start]);
 
@@ -333,14 +337,19 @@ export function FaceScanner({ onScanComplete }: FaceScannerProps) {
           </div>
         )}
 
-        <ScannerStateOverlay
-          status={status}
-          modelReady={modelReady}
-          modelError={modelError}
-          onRetry={() => void start()}
-        />
+        {!started && !modelError && <LaunchOverlay onStart={begin} />}
+
+        {started && (
+          <ScannerStateOverlay
+            status={status}
+            modelReady={modelReady}
+            modelError={modelError}
+            onRetry={() => void start()}
+          />
+        )}
       </div>
 
+      {started && (
       <div className="mt-5 flex flex-col items-center gap-3">
         {scanning ? (
           <div className="w-full max-w-xs">
@@ -365,6 +374,7 @@ export function FaceScanner({ onScanComplete }: FaceScannerProps) {
           Your photo is processed on your device and never uploaded.
         </p>
       </div>
+      )}
     </div>
   );
 }
@@ -417,6 +427,30 @@ function CircularGuide({ active, scanning }: { active: boolean; scanning: boolea
               : "border-white/35 border-dashed",
         )}
       />
+    </div>
+  );
+}
+
+function LaunchOverlay({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-ink/80 p-6 text-center backdrop-blur-sm">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10">
+        <ScanFace className="h-7 w-7 text-white" />
+      </div>
+      <div>
+        <p className="text-base font-semibold text-white">Analyze your skin</p>
+        <p className="mt-1 max-w-[18rem] text-sm text-white/70">
+          A 10-second on-device scan. Your camera turns on only when you tap
+          start.
+        </p>
+      </div>
+      <Button size="lg" onClick={onStart} className="w-full max-w-[15rem]">
+        <ScanFace className="h-5 w-5" /> Start skin analysis
+      </Button>
+      <p className="flex items-center gap-1.5 text-xs text-white/60">
+        <ShieldCheck className="h-3.5 w-3.5 text-sage" />
+        Nothing is uploaded — it stays on your device.
+      </p>
     </div>
   );
 }

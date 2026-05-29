@@ -294,3 +294,19 @@ one Vercel deploy, three routes:
 The iframe genuinely runs the widget in isolation, proving it's self-contained;
 `allow="camera"` is required for getUserMedia inside the frame. All three routes
 serve 200; 63 tests still green.
+
+**Iteration — make the demo real, and stop the camera ambush.** Three fixes
+([ADR-015](./DECISIONS.md#adr-015--camera-on-explicit-gesture-quiet-mediapipe-cross-browser)):
+
+1. **MediaPipe console noise** (XNNPACK / GL / feedback-manager lines tripping the
+   dev overlay) → `lib/vision/silence-mediapipe.ts`, a surgical console filter
+   installed at landmarker init.
+2. **Camera-on-mount → launch screen.** The widget no longer calls `getUserMedia`
+   on mount; it shows a "Start skin analysis" panel and requests the camera only
+   on tap. So entering `/demo` shows the shop, not a permission prompt — and the
+   widget sits in a dedicated "Free skin analysis" section below the fold.
+3. **`/demo` rebuilt as a believable storefront** — announcement bar, sticky
+   nav, hero, a 6-product best-sellers grid (gradient art), the analysis section,
+   the embed pitch, and a multi-column footer. Fully responsive (grid collapses,
+   nav hides on mobile), and cross-browser (playsInline + muted video, standard
+   getUserMedia, `allow="camera"` on the iframe).
