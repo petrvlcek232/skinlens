@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <main className="flex-1">
       <section className="mx-auto grid max-w-6xl gap-12 px-6 py-12 lg:grid-cols-2 lg:items-center lg:gap-16 lg:py-20">
-        <div className="order-2 lg:order-1">
+        <div className="order-2 animate-fade-up lg:order-1">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper-raised px-3 py-1 text-xs font-medium text-ink-soft">
             <Sparkles className="h-3.5 w-3.5 text-accent" />
             On-device AI skin analysis

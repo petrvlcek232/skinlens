@@ -310,3 +310,13 @@ serve 200; 63 tests still green.
    the embed pitch, and a multi-column footer. Fully responsive (grid collapses,
    nav hides on mobile), and cross-browser (playsInline + muted video, standard
    getUserMedia, `allow="camera"` on the iframe).
+
+**Iteration — design lift for "wow."** The demo felt too plain. Without rights to
+stock product photos, built **original SVG product art**
+(`components/marketing/product-art.tsx` — frosted-glass jar/dropper/pump/tube
+silhouettes, tinted per category) and used it across the storefront cards *and*
+the in-widget recommendation cards, so products read as products. Added a premium
+serif display face (Fraunces) for the brand wordmark + headings, hover-lift
+micro-interactions on cards/CTAs, a fade-up hero entrance, and **globally hidden
+scrollbars** (scrolling intact). The result and storefront now look intentional,
+not scaffolded.

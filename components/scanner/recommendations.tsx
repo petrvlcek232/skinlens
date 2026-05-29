@@ -5,6 +5,11 @@ import { Check, Plus, ShoppingBag } from "lucide-react";
 import { buildRoutine, type RoutineSlot } from "@/lib/recommendations/recommend";
 import type { SkinAnalysis } from "@/lib/analysis/analyze";
 import { Button } from "@/components/ui/button";
+import {
+  ProductArt,
+  shapeForCategory,
+  gradientForCategory,
+} from "@/components/marketing/product-art";
 import { cn } from "@/lib/utils";
 
 const SLOT_LABEL: Record<RoutineSlot, string> = {
@@ -49,18 +54,29 @@ export function Recommendations({ analysis }: { analysis: SkinAnalysis }) {
               className="rounded-xl border border-line bg-paper-raised p-3.5"
             >
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 rounded-md bg-paper px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-soft ring-1 ring-line">
-                  {SLOT_LABEL[step.slot]}
-                </span>
+                <div
+                  className="flex h-16 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg"
+                  style={{
+                    backgroundImage: `linear-gradient(150deg, ${gradientForCategory(step.product.category)[0]}, ${gradientForCategory(step.product.category)[1]})`,
+                  }}
+                >
+                  <ProductArt
+                    shape={shapeForCategory(step.product.category)}
+                    className="h-[82%] w-full"
+                  />
+                </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-medium text-ink">
-                      {step.product.name}
-                    </p>
+                    <span className="rounded bg-paper px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink-soft ring-1 ring-line">
+                      {SLOT_LABEL[step.slot]}
+                    </span>
                     <span className="shrink-0 text-sm font-medium text-ink">
                       ${step.product.priceUsd}
                     </span>
                   </div>
+                  <p className="mt-1 truncate text-sm font-medium text-ink">
+                    {step.product.name}
+                  </p>
                   <p className="text-xs text-ink-soft">
                     {step.product.keyIngredient}
                   </p>
