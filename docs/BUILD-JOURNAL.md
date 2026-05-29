@@ -204,3 +204,22 @@ darker skin. A test asserts a dark-but-evenly-lit face passes as "good," not
 light-skin-in-dim-light from one frame is an open problem — so we gate on the
 robust signals and show a confidence rather than feigning certainty. 50 tests
 green.
+
+---
+
+## Phase 6 — Recommendation funnel
+
+Completed the business story: analysis → routine → products. A small fictional
+catalog (`lib/recommendations/catalog.ts`, generic names — no real brands or
+clinical claims) and a deterministic mapping (`recommend.ts`)
+([ADR-013](./DECISIONS.md#adr-013--deterministic-reason-tied-recommendations-over-a-generic-catalog)):
+
+- Core steps (cleanse / moisturize / protect) always present.
+- Targeted serums added only for flagged concerns, worst-first, capped at two.
+- Under-eye adds an eye step; redness biases toward soothing cleanser + barrier
+  moisturizer.
+- Every step carries a reason tied to the user's own score, never a blind upsell.
+
+`Recommendations` renders the routine as step cards with an add/remove toggle and
+a running total — the conversion surface, minus a real cart (a demo). 57 tests
+green.

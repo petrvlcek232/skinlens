@@ -5,6 +5,7 @@ import { RotateCcw } from "lucide-react";
 import { FaceScanner } from "./face-scanner";
 import { CapturedPreview } from "./captured-preview";
 import { AnalysisResult } from "./analysis-result";
+import { Recommendations } from "./recommendations";
 import { Button } from "@/components/ui/button";
 import { analyzeScan } from "@/lib/analysis/analyze";
 import type { ScanResult } from "@/lib/vision/types";
@@ -35,6 +36,8 @@ export function SkinAdvisorWidget() {
         <div className="mt-4">
           <AnalysisResult analysis={analysis} />
         </div>
+
+        <Recommendations analysis={analysis} />
 
         <div className="mt-5 flex flex-col items-center gap-2">
           <Button

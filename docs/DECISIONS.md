@@ -234,3 +234,24 @@ open problem (the illumination-dataset diversity gap is documented) — so we ga
 on the tone-robust signals and surface a confidence rather than pretending
 certainty. Enforced by a test asserting dark-but-evenly-lit skin passes as
 "good," not "dim."
+
+---
+
+## ADR-013 — Deterministic, reason-tied recommendations over a generic catalog
+
+**Context.** The funnel needs to turn the analysis into product recommendations —
+the step that actually drives conversion for a brand. Two temptations: (a) use
+real brand names, (b) make recommendations feel "smart" by being opaque.
+
+**Decision.** A small **fictional, generically-named** catalog (`lib/recommendations/catalog.ts`)
+and a **deterministic** mapping (`recommend.ts`): core steps (cleanse / moisturize
+/ protect) always present; targeted serums added only for concerns the scan
+flagged, worst-first, capped at two; every step carries a **reason tied to the
+user's own score**.
+
+**Rationale.** Generic names avoid trademark and unverifiable clinical claims —
+honest for a demo, and in production this slot is simply the brand's real product
+feed (documented in the UI). Deterministic + reason-tied means the logic is
+testable, explainable, and never a blind upsell — recommendations a user (and a
+reviewer) can trust. The cap keeps the routine realistic rather than selling the
+whole catalog.
