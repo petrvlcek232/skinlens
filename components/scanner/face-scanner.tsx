@@ -87,7 +87,7 @@ export function FaceScanner({ onCapture }: FaceScannerProps) {
                 drawing.drawConnectors(
                   face,
                   FaceLandmarker.FACE_LANDMARKS_TESSELATION,
-                  { color: "rgba(224,101,74,0.16)", lineWidth: 0.6 },
+                  { color: "rgba(224,101,74,0.22)", lineWidth: 0.7 },
                 );
                 drawing.drawConnectors(
                   face,
