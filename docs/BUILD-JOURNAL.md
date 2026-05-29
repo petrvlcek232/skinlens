@@ -243,5 +243,15 @@ form), and swap the discrete circles for a face heatmap
   scan: accent blobs that fade in with progress, replacing the circles. Reads like
   LiveAR and maps the visual straight to the scores.
 
-63 tests green. (Embed route + brand demo deferred to finish this visual pass
-first.)
+63 tests green.
+
+**Iteration — design for the ICP, not the tester.** First heatmap landed the
+forehead band on the *eyebrows* (too low), and the coverage was generic. Reframed
+around the real ICP — predominantly mature-skin women — and redesigned the region
+set (8 → 14): forehead band **raised above the brow**, plus the line-prone zones
+that actually matter to that persona: **crow's feet** (outer eye corners),
+**nasolabial folds**, **perioral** (under-nose) and **chin**. The fine-lines
+concern now reads forehead horizontal-line energy *plus* crow's-feet and
+nasolabial texture. The heatmap consequently covers the whole expressive face,
+not just the centre. (Embed route + brand demo deferred to finish this visual
+pass first.)

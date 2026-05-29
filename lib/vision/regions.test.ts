@@ -16,6 +16,8 @@ function syntheticFace(deg = 0): Landmark[] {
     [REGION_ANCHORS.noseTip]: [0.5, 0.55],
     [REGION_ANCHORS.foreheadTop]: [0.5, 0.28],
     [REGION_ANCHORS.chin]: [0.5, 0.78],
+    [REGION_ANCHORS.mouthRight]: [0.46, 0.66],
+    [REGION_ANCHORS.mouthLeft]: [0.54, 0.66],
   };
 
   const rad = (deg * Math.PI) / 180;
@@ -63,7 +65,7 @@ describe("deriveRegions", () => {
   it("produces all regions with positive radii inside the frame", () => {
     const regions = deriveRegions(syntheticFace(), W, H);
     expect(regions).not.toBeNull();
-    expect(regions!).toHaveLength(8);
+    expect(regions!).toHaveLength(14);
     for (const r of regions!) {
       expect(r.radius).toBeGreaterThan(0);
       expect(r.center.x).toBeGreaterThan(0);
@@ -103,7 +105,7 @@ describe("deriveRegions", () => {
   it("is tilt-robust: a 20° head tilt keeps every region in-frame and sized", () => {
     const regions = deriveRegions(syntheticFace(20), W, H);
     expect(regions).not.toBeNull();
-    expect(regions!).toHaveLength(8);
+    expect(regions!).toHaveLength(14);
     for (const r of regions!) {
       expect(r.radius).toBeGreaterThan(0);
       expect(r.center.x).toBeGreaterThan(0);

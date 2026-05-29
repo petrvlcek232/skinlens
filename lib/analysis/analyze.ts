@@ -35,6 +35,10 @@ const WEIGHTS: Record<ConcernId, number> = {
   texture: 0.2,
 };
 
+function avg(ns: number[]): number {
+  return ns.length ? ns.reduce((a, b) => a + b, 0) / ns.length : 0;
+}
+
 function severityOf(score: number): Severity {
   if (score >= 75) return "good";
   if (score >= 50) return "moderate";
@@ -82,32 +86,41 @@ export function analyzeScan(result: ScanResult): SkinAnalysis {
   const spread = toneSpread(lab);
   const evenness = scoreFromDelta(spread, 3, 14, 45);
 
-  // Texture & fine lines: read the forehead band (centre + both sides). Combine
-  // isotropic texture (Laplacian variance) with horizontal-line energy, since
-  // forehead expression lines run horizontally.
+  // Texture & fine lines: the forehead band gives horizontal-line energy (brow
+  // lines run horizontally); crow's feet and nasolabial folds add isotropic
+  // texture from the other line-prone zones that matter most for mature skin.
   const regions = deriveRegions(
     result.landmarks,
     result.width,
     result.height,
   );
-  const foreheadPatches = (regions ?? []).filter(
-    (r) =>
-      r.id === "forehead" ||
-      r.id === "foreheadLeft" ||
-      r.id === "foreheadRight",
-  );
+  const half = (r: { radius: number }) => Math.max(4, Math.round(r.radius * 0.8));
+  const byIds = (ids: string[]) =>
+    (regions ?? []).filter((r) => ids.includes(r.id));
+
+  const forehead = byIds(["forehead", "foreheadLeft", "foreheadRight"]);
+  const lineZones = byIds([
+    "outerEyeLeft",
+    "outerEyeRight",
+    "nasolabialLeft",
+    "nasolabialRight",
+  ]);
+
   let texture = 100;
-  if (foreheadPatches.length > 0) {
-    let lapSum = 0;
-    let lineSum = 0;
-    for (const patch of foreheadPatches) {
-      const half = Math.max(4, Math.round(patch.radius * 0.8));
-      lapSum += laplacianVariance(result.imageData, patch.center, half);
-      lineSum += horizontalLineEnergy(result.imageData, patch.center, half);
-    }
-    const lapScore = scoreFromDelta(lapSum / foreheadPatches.length, 0.002, 0.02, 40);
-    const lineScore = scoreFromDelta(lineSum / foreheadPatches.length, 0.04, 0.12, 40);
-    texture = Math.round(0.5 * lapScore + 0.5 * lineScore);
+  if (forehead.length > 0) {
+    const foreheadLine = avg(
+      forehead.map((p) =>
+        horizontalLineEnergy(result.imageData, p.center, half(p)),
+      ),
+    );
+    const allTexture = avg(
+      [...forehead, ...lineZones].map((p) =>
+        laplacianVariance(result.imageData, p.center, half(p)),
+      ),
+    );
+    const lineScore = scoreFromDelta(foreheadLine, 0.04, 0.12, 40);
+    const texScore = scoreFromDelta(allTexture, 0.002, 0.02, 40);
+    texture = Math.round(0.5 * lineScore + 0.5 * texScore);
   }
 
   const concerns: ConcernResult[] = [

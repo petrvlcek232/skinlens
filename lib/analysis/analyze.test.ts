@@ -21,6 +21,8 @@ function frontalLandmarks(): Landmark[] {
     [REGION_ANCHORS.noseTip]: [0.5, 0.55],
     [REGION_ANCHORS.foreheadTop]: [0.5, 0.28],
     [REGION_ANCHORS.chin]: [0.5, 0.78],
+    [REGION_ANCHORS.mouthRight]: [0.46, 0.66],
+    [REGION_ANCHORS.mouthLeft]: [0.54, 0.66],
   };
   const lm: Landmark[] = Array.from({ length: 478 }, () => ({ x: 0, y: 0, z: 0 }));
   for (const [i, [x, y]] of Object.entries(pts)) lm[Number(i)] = { x, y, z: 0 };

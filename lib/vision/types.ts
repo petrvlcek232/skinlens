@@ -35,11 +35,17 @@ export type RegionId =
   | "forehead"
   | "foreheadLeft"
   | "foreheadRight"
-  | "leftCheek"
-  | "rightCheek"
+  | "outerEyeLeft"
+  | "outerEyeRight"
   | "underEyeLeft"
   | "underEyeRight"
-  | "noseTzone";
+  | "leftCheek"
+  | "rightCheek"
+  | "noseTzone"
+  | "nasolabialLeft"
+  | "nasolabialRight"
+  | "upperLip"
+  | "chin";
 
 /** A circular sampling region in pixel space, with the pixels it captured. */
 export interface SampledRegion {

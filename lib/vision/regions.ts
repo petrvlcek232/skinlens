@@ -21,6 +21,8 @@ const ANCHOR = {
   noseTip: 4,
   foreheadTop: 10,
   chin: 152,
+  mouthRight: 61,
+  mouthLeft: 291,
 } as const;
 
 export interface RegionCircle {
@@ -74,7 +76,7 @@ export function deriveRegions(
   width: number,
   height: number,
 ): RegionCircle[] | null {
-  if (landmarks.length <= ANCHOR.leftEyeOuter) return null;
+  if (landmarks.length <= ANCHOR.mouthLeft) return null;
 
   const px = (i: number) => toPixel(landmarks[i], width, height);
 
@@ -84,30 +86,46 @@ export function deriveRegions(
   const chin = px(ANCHOR.chin);
   const noseTip = px(ANCHOR.noseTip);
   const foreheadTop = px(ANCHOR.foreheadTop);
+  const mouthR = px(ANCHOR.mouthRight);
+  const mouthL = px(ANCHOR.mouthLeft);
+  const mouthMid = mid(mouthR, mouthL);
 
   const d = len(sub(eyeL, eyeR));
   if (d < 24) return null; // face too small for reliable sampling
 
-  // Local frame: `right` along the eye axis, `down` perpendicular toward chin.
+  // Local frame: `right` along the eye axis (toward the subject's left eye),
+  // `down` perpendicular toward the chin. All offsets are in units of the
+  // inter-eye distance `d`, so regions scale with face size and ride head tilt.
   const right = normalize(sub(eyeL, eyeR));
   let down = { x: -right.y, y: right.x };
   if (dot(down, sub(chin, eyeMid)) < 0) down = { x: -down.x, y: -down.y };
 
-  // All offsets are in units of the inter-eye distance `d`, so the regions
-  // scale with face size and ride the tilt-robust local frame. Cheeks sit
-  // outward on the "apples" (clear of nose, lips and beard line); under-eye
-  // sits directly below each eye; the forehead is sampled as a band (centre +
-  // both sides) — that's where horizontal lines form, so it earns more coverage.
-  const foreheadMid = lerp(eyeMid, foreheadTop, 0.48);
+  // Coverage tuned for the core ICP (often mature skin): the forehead band sits
+  // high (above the brow, where horizontal lines form), plus the line-prone
+  // zones that matter most — crow's feet, nasolabial folds, perioral, chin.
+  const foreheadMid = lerp(eyeMid, foreheadTop, 0.66);
   const regions: RegionCircle[] = [
-    { id: "forehead", center: foreheadMid, radius: 0.17 * d },
-    { id: "foreheadLeft", center: offset(foreheadMid, right, down, 0.5, 0, d), radius: 0.14 * d },
-    { id: "foreheadRight", center: offset(foreheadMid, right, down, -0.5, 0, d), radius: 0.14 * d },
-    { id: "rightCheek", center: offset(eyeR, right, down, -0.45, 0.62, d), radius: 0.15 * d },
-    { id: "leftCheek", center: offset(eyeL, right, down, 0.45, 0.62, d), radius: 0.15 * d },
+    // Forehead band (raised above the brow).
+    { id: "forehead", center: foreheadMid, radius: 0.16 * d },
+    { id: "foreheadLeft", center: offset(foreheadMid, right, down, 0.5, 0, d), radius: 0.13 * d },
+    { id: "foreheadRight", center: offset(foreheadMid, right, down, -0.5, 0, d), radius: 0.13 * d },
+    // Crow's feet at the outer eye corners.
+    { id: "outerEyeRight", center: offset(eyeR, right, down, -0.62, 0.06, d), radius: 0.1 * d },
+    { id: "outerEyeLeft", center: offset(eyeL, right, down, 0.62, 0.06, d), radius: 0.1 * d },
+    // Under-eye.
     { id: "underEyeRight", center: offset(eyeR, right, down, -0.05, 0.36, d), radius: 0.1 * d },
     { id: "underEyeLeft", center: offset(eyeL, right, down, 0.05, 0.36, d), radius: 0.1 * d },
-    { id: "noseTzone", center: lerp(eyeMid, noseTip, 0.5), radius: 0.11 * d },
+    // Cheek apples.
+    { id: "rightCheek", center: offset(eyeR, right, down, -0.45, 0.62, d), radius: 0.14 * d },
+    { id: "leftCheek", center: offset(eyeL, right, down, 0.45, 0.62, d), radius: 0.14 * d },
+    // Nose / T-zone.
+    { id: "noseTzone", center: lerp(eyeMid, noseTip, 0.5), radius: 0.1 * d },
+    // Nasolabial folds (nose-to-mouth), just above and lateral to mouth corners.
+    { id: "nasolabialRight", center: offset(mouthR, right, down, -0.06, -0.28, d), radius: 0.1 * d },
+    { id: "nasolabialLeft", center: offset(mouthL, right, down, 0.06, -0.28, d), radius: 0.1 * d },
+    // Perioral: under the nose (philtrum) and the chin.
+    { id: "upperLip", center: lerp(mouthMid, noseTip, 0.45), radius: 0.08 * d },
+    { id: "chin", center: lerp(mouthMid, chin, 0.62), radius: 0.12 * d },
   ];
 
   return regions;
