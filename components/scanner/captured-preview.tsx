@@ -2,43 +2,43 @@
 
 import { useEffect, useRef } from "react";
 import { deriveRegions } from "@/lib/vision/regions";
-import type { SkinCapture } from "@/lib/vision/types";
+import type { ScanResult } from "@/lib/vision/types";
 
 interface CapturedPreviewProps {
-  capture: SkinCapture;
+  result: Pick<ScanResult, "imageData" | "landmarks" | "width" | "height">;
 }
 
 /**
- * Renders the frozen capture with the derived sampling regions overlaid — a
- * direct visual proof that landmarks → region geometry → sampling all line up
- * on the forehead, cheeks, under-eye and T-zone.
+ * Renders the final scan frame with the sampled regions overlaid — a visual
+ * proof that landmarks → region geometry → sampling all line up on the
+ * forehead, cheeks, under-eye and T-zone.
  */
-export function CapturedPreview({ capture }: CapturedPreviewProps) {
+export function CapturedPreview({ result }: CapturedPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    canvas.width = capture.width;
-    canvas.height = capture.height;
+    canvas.width = result.width;
+    canvas.height = result.height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    ctx.putImageData(capture.imageData, 0, 0);
+    ctx.putImageData(result.imageData, 0, 0);
 
-    const regions = deriveRegions(capture.landmarks, capture.width, capture.height);
+    const regions = deriveRegions(result.landmarks, result.width, result.height);
     if (!regions) return;
 
     for (const region of regions) {
       ctx.beginPath();
       ctx.arc(region.center.x, region.center.y, region.radius, 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(224,101,74,0.95)";
-      ctx.lineWidth = Math.max(2, capture.width / 320);
+      ctx.lineWidth = Math.max(2, result.width / 320);
       ctx.stroke();
       ctx.fillStyle = "rgba(224,101,74,0.12)";
       ctx.fill();
     }
-  }, [capture]);
+  }, [result]);
 
   return (
     <canvas

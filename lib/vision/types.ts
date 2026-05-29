@@ -47,13 +47,30 @@ export interface SampledRegion {
   pixels: RGB[];
 }
 
-/** A frozen frame plus its detected landmarks, handed to the analysis stage. */
-export interface SkinCapture {
-  /** Pixels of the frozen frame (un-mirrored, native resolution). */
+/** Robust per-region color aggregated across all good scan frames. */
+export interface RegionSampleStats {
+  id: RegionId;
+  /** Component-wise median color across frames (outlier-rejected per frame). */
+  color: RGB;
+  /** Average number of skin pixels sampled per frame. */
+  avgPixelCount: number;
+  /** How many frames contributed to this region. */
+  frameCount: number;
+}
+
+/**
+ * Output of a multi-frame scan. Color metrics are read from the temporally
+ * averaged `regionStats` (stable, flicker-resistant); texture is read from the
+ * single sharpest `imageData` frame, re-deriving regions from `landmarks`.
+ */
+export interface ScanResult {
+  regionStats: RegionSampleStats[];
+  framesAccumulated: number;
+  /** Final frame, native resolution, un-mirrored — for texture + rendering. */
   imageData: ImageData;
   landmarks: Landmark[];
   width: number;
   height: number;
-  /** Data URL for displaying the captured shot back to the user. */
+  /** Data URL of the final frame, for displaying the shot back to the user. */
   preview: string;
 }

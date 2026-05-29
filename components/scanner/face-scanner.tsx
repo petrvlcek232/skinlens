@@ -6,36 +6,83 @@ import {
   FaceLandmarker,
   type NormalizedLandmark,
 } from "@mediapipe/tasks-vision";
-import { Camera, ShieldCheck, RotateCcw, CircleAlert, Loader2 } from "lucide-react";
+import { ShieldCheck, RotateCcw, CircleAlert, Loader2, ScanFace } from "lucide-react";
 import { useCamera } from "@/hooks/use-camera";
 import { getFaceLandmarker } from "@/lib/vision/landmarker";
 import { assessFraming, type Framing } from "@/lib/vision/quality";
-import type { Landmark, SkinCapture } from "@/lib/vision/types";
+import { deriveRegions, type RegionCircle } from "@/lib/vision/regions";
+import { sampleRegions } from "@/lib/vision/sampling";
+import {
+  createAccumulator,
+  accumulateFrame,
+  finalizeScan,
+} from "@/lib/vision/scan";
+import type { Landmark, ScanResult } from "@/lib/vision/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface FaceScannerProps {
-  onCapture: (capture: SkinCapture) => void;
+  onScanComplete: (result: ScanResult) => void;
 }
 
 const INITIAL_FRAMING: Framing = assessFraming(null);
+const SCAN_DURATION_MS = 2200;
+const MIN_SCAN_FRAMES = 18;
 
-export function FaceScanner({ onCapture }: FaceScannerProps) {
+export function FaceScanner({ onScanComplete }: FaceScannerProps) {
   const { videoRef, status, start } = useCamera();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const sampleCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const latestLandmarks = useRef<Landmark[] | null>(null);
+  const onCompleteRef = useRef(onScanComplete);
+  onCompleteRef.current = onScanComplete;
+
+  // Scan control lives in refs so the single bound rAF loop reads fresh values.
+  const scanningRef = useRef(false);
+  const scanStartRef = useRef(0);
+  const accumulatorRef = useRef(createAccumulator());
 
   const [modelReady, setModelReady] = useState(false);
   const [modelError, setModelError] = useState(false);
   const [framing, setFraming] = useState<Framing>(INITIAL_FRAMING);
   const [fps, setFps] = useState(0);
+  const [scanning, setScanning] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-  // Auto-request the camera on mount.
   useEffect(() => {
     void start();
   }, [start]);
 
-  // Detection + draw loop, active once the camera stream is ready.
+  const finishScan = useCallback(() => {
+    scanningRef.current = false;
+    const video = videoRef.current;
+    const sampleCanvas = sampleCanvasRef.current;
+    const face = latestLandmarks.current;
+    if (!video || !sampleCanvas || !face) {
+      setScanning(false);
+      setProgress(0);
+      return;
+    }
+    const stats = finalizeScan(accumulatorRef.current);
+    const imageData = sampleCanvas
+      .getContext("2d", { willReadFrequently: true })!
+      .getImageData(0, 0, sampleCanvas.width, sampleCanvas.height);
+    const preview = sampleCanvas.toDataURL("image/jpeg", 0.92);
+
+    setScanning(false);
+    setProgress(100);
+    onCompleteRef.current({
+      regionStats: stats,
+      framesAccumulated: accumulatorRef.current.frames,
+      imageData,
+      landmarks: face,
+      width: sampleCanvas.width,
+      height: sampleCanvas.height,
+      preview,
+    });
+  }, [videoRef]);
+
+  // Detection + draw loop — bound once when the camera is ready.
   useEffect(() => {
     if (status !== "ready") return;
     let cancelled = false;
@@ -45,6 +92,8 @@ export function FaceScanner({ onCapture }: FaceScannerProps) {
     let frameCount = 0;
     let fpsAnchor = performance.now();
     let lastHint = "";
+    let lastProgress = -1;
+    let notReadyStreak = 0;
 
     (async () => {
       let landmarker: FaceLandmarker;
@@ -83,21 +132,49 @@ export function FaceScanner({ onCapture }: FaceScannerProps) {
               }
 
               ctx.clearRect(0, 0, canvas.width, canvas.height);
+              const next = assessFraming(face);
+              const regions =
+                face && deriveRegions(face, canvas.width, canvas.height);
+
               if (face) {
                 drawing.drawConnectors(
                   face,
                   FaceLandmarker.FACE_LANDMARKS_TESSELATION,
-                  { color: "rgba(224,101,74,0.22)", lineWidth: 0.7 },
-                );
-                drawing.drawConnectors(
-                  face,
-                  FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
-                  { color: "rgba(224,101,74,0.85)", lineWidth: 2 },
+                  {
+                    color: scanningRef.current
+                      ? "rgba(224,101,74,0.35)"
+                      : "rgba(224,101,74,0.22)",
+                    lineWidth: 0.7,
+                  },
                 );
               }
               latestLandmarks.current = face;
 
-              const next = assessFraming(face);
+              // --- Scan tick -------------------------------------------------
+              if (!scanningRef.current) {
+                notReadyStreak = 0;
+              } else {
+                if (!next.ready || !regions) {
+                  // Tolerate brief tracking blips; abort only on a real loss.
+                  notReadyStreak += 1;
+                  if (notReadyStreak > 8) abortScanLoop();
+                } else {
+                  notReadyStreak = 0;
+                  accumulateCurrentFrame(video, regions);
+                  const elapsed = now - scanStartRef.current;
+                  const p = Math.min(1, elapsed / SCAN_DURATION_MS);
+                  drawScanOverlay(ctx, regions, p);
+                  const pct = Math.round(p * 100);
+                  if (pct !== lastProgress) {
+                    lastProgress = pct;
+                    setProgress(pct);
+                  }
+                  if (p >= 1 && accumulatorRef.current.frames >= MIN_SCAN_FRAMES) {
+                    finishScan();
+                  }
+                }
+              }
+
               if (next.hint !== lastHint || next.ready !== framing.ready) {
                 lastHint = next.hint;
                 setFraming(next);
@@ -114,6 +191,36 @@ export function FaceScanner({ onCapture }: FaceScannerProps) {
         }
         raf = requestAnimationFrame(loop);
       };
+
+      function abortScanLoop() {
+        scanningRef.current = false;
+        lastProgress = -1;
+        setScanning(false);
+        setProgress(0);
+      }
+
+      function accumulateCurrentFrame(
+        video: HTMLVideoElement,
+        regions: RegionCircle[],
+      ) {
+        const sampleCanvas = sampleCanvasRef.current;
+        if (!sampleCanvas) return;
+        if (sampleCanvas.width !== video.videoWidth) {
+          sampleCanvas.width = video.videoWidth;
+          sampleCanvas.height = video.videoHeight;
+        }
+        const sctx = sampleCanvas.getContext("2d", { willReadFrequently: true });
+        if (!sctx) return;
+        sctx.drawImage(video, 0, 0, sampleCanvas.width, sampleCanvas.height);
+        const frame = sctx.getImageData(
+          0,
+          0,
+          sampleCanvas.width,
+          sampleCanvas.height,
+        );
+        accumulateFrame(accumulatorRef.current, sampleRegions(frame, regions));
+      }
+
       loop();
     })();
 
@@ -121,39 +228,23 @@ export function FaceScanner({ onCapture }: FaceScannerProps) {
       cancelled = true;
       cancelAnimationFrame(raf);
     };
-    // framing.ready is read inside but we intentionally bind the loop once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, videoRef]);
+  }, [status, videoRef, finishScan]);
 
-  const handleCapture = useCallback(() => {
-    const video = videoRef.current;
-    const face = latestLandmarks.current;
-    if (!video || !face || video.videoWidth === 0) return;
+  const startScan = useCallback(() => {
+    if (!framing.ready || !modelReady || scanningRef.current) return;
+    accumulatorRef.current = createAccumulator();
+    scanStartRef.current = performance.now();
+    scanningRef.current = true;
+    setProgress(0);
+    setScanning(true);
+  }, [framing.ready, modelReady]);
 
-    const off = document.createElement("canvas");
-    off.width = video.videoWidth;
-    off.height = video.videoHeight;
-    const octx = off.getContext("2d");
-    if (!octx) return;
-    octx.drawImage(video, 0, 0, off.width, off.height);
-    const imageData = octx.getImageData(0, 0, off.width, off.height);
-    const preview = off.toDataURL("image/jpeg", 0.92);
-
-    onCapture({
-      imageData,
-      landmarks: face,
-      width: off.width,
-      height: off.height,
-      preview,
-    });
-  }, [onCapture, videoRef]);
-
-  const canCapture = status === "ready" && modelReady && framing.ready;
+  const canScan = status === "ready" && modelReady && framing.ready;
 
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[var(--radius-card)] bg-ink/95 shadow-lg ring-1 ring-line">
-        {/* Mirrored stage: video + landmark overlay share the same flip. */}
         <div className="absolute inset-0 [transform:scaleX(-1)]">
           <video
             ref={videoRef}
@@ -166,9 +257,10 @@ export function FaceScanner({ onCapture }: FaceScannerProps) {
             className="absolute inset-0 h-full w-full object-cover"
           />
         </div>
+        {/* Off-screen canvas for per-frame pixel sampling. */}
+        <canvas ref={sampleCanvasRef} className="hidden" />
 
-        {/* Non-mirrored overlays. */}
-        <CircularGuide active={framing.ready} />
+        <CircularGuide active={framing.ready || scanning} scanning={scanning} />
 
         {status === "ready" && modelReady && (
           <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-ink/55 px-2.5 py-1 text-[11px] font-medium text-white/90 backdrop-blur">
@@ -182,12 +274,18 @@ export function FaceScanner({ onCapture }: FaceScannerProps) {
             <span
               className={cn(
                 "rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur transition-colors",
-                framing.ready
-                  ? "bg-sage/90 text-white"
-                  : "bg-ink/55 text-white/90",
+                scanning
+                  ? "bg-accent/90 text-white"
+                  : framing.ready
+                    ? "bg-sage/90 text-white"
+                    : "bg-ink/55 text-white/90",
               )}
             >
-              {modelReady ? framing.hint : "Loading analysis model…"}
+              {!modelReady
+                ? "Loading analysis model…"
+                : scanning
+                  ? `Scanning your skin… ${progress}%`
+                  : framing.hint}
             </span>
           </div>
         )}
@@ -201,15 +299,29 @@ export function FaceScanner({ onCapture }: FaceScannerProps) {
       </div>
 
       <div className="mt-5 flex flex-col items-center gap-3">
-        <Button
-          size="lg"
-          onClick={handleCapture}
-          disabled={!canCapture}
-          className="w-full max-w-xs"
-        >
-          <Camera className="h-5 w-5" />
-          Analyze my skin
-        </Button>
+        {scanning ? (
+          <div className="w-full max-w-xs">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-line">
+              <div
+                className="h-full rounded-full bg-accent transition-[width] duration-100"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="mt-2 text-center text-xs text-ink-soft">
+              Hold still — averaging {MIN_SCAN_FRAMES}+ frames for accuracy
+            </p>
+          </div>
+        ) : (
+          <Button
+            size="lg"
+            onClick={startScan}
+            disabled={!canScan}
+            className="w-full max-w-xs"
+          >
+            <ScanFace className="h-5 w-5" />
+            Analyze my skin
+          </Button>
+        )}
         <p className="flex items-center gap-1.5 text-xs text-ink-soft">
           <ShieldCheck className="h-3.5 w-3.5 text-sage" />
           Your photo is processed on your device and never uploaded.
@@ -219,13 +331,67 @@ export function FaceScanner({ onCapture }: FaceScannerProps) {
   );
 }
 
-function CircularGuide({ active }: { active: boolean }) {
+/** Live scan visuals drawn over the real face: sweep band + filling region rings. */
+function drawScanOverlay(
+  ctx: CanvasRenderingContext2D,
+  regions: RegionCircle[],
+  progress: number,
+) {
+  const { width, height } = ctx.canvas;
+
+  // Horizontal scan sweep with a soft glow band.
+  const y = progress * height;
+  const band = Math.max(8, height * 0.04);
+  const grad = ctx.createLinearGradient(0, y - band, 0, y + band);
+  grad.addColorStop(0, "rgba(224,101,74,0)");
+  grad.addColorStop(0.5, "rgba(224,101,74,0.35)");
+  grad.addColorStop(1, "rgba(224,101,74,0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, y - band, width, band * 2);
+  ctx.strokeStyle = "rgba(224,101,74,0.9)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, y);
+  ctx.lineTo(width, y);
+  ctx.stroke();
+
+  // Region rings fill as the scan completes.
+  for (const region of regions) {
+    const { x, y: cy } = region.center;
+    const r = region.radius;
+    ctx.beginPath();
+    ctx.arc(x, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(224,101,74,${0.1 + 0.2 * progress})`;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // Progress arc.
+    ctx.beginPath();
+    ctx.arc(x, cy, r + 3, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+    ctx.strokeStyle = "rgba(224,101,74,0.95)";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+}
+
+function CircularGuide({
+  active,
+  scanning,
+}: {
+  active: boolean;
+  scanning: boolean;
+}) {
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
       <div
         className={cn(
-          "h-[62%] w-[58%] rounded-[50%] border-2 border-dashed transition-colors duration-300",
-          active ? "border-sage/80" : "border-white/35",
+          "h-[62%] w-[58%] rounded-[50%] border-2 transition-colors duration-300",
+          scanning
+            ? "border-accent/80 border-solid"
+            : active
+              ? "border-sage/80 border-dashed"
+              : "border-white/35 border-dashed",
         )}
       />
     </div>
@@ -244,7 +410,9 @@ function ScannerStateOverlay({
   onRetry: () => void;
 }) {
   const showLoader =
-    (status === "idle" || status === "requesting" || (status === "ready" && !modelReady)) &&
+    (status === "idle" ||
+      status === "requesting" ||
+      (status === "ready" && !modelReady)) &&
     !modelError;
 
   if (showLoader) {
@@ -265,7 +433,8 @@ function ScannerStateOverlay({
       <Overlay>
         <CircleAlert className="h-7 w-7 text-accent-soft" />
         <p className="max-w-[16rem] text-center text-sm text-white/85">
-          Couldn&apos;t load the analysis model. Check your connection and try again.
+          Couldn&apos;t load the analysis model. Check your connection and try
+          again.
         </p>
         <RetryButton onRetry={onRetry} />
       </Overlay>
@@ -289,8 +458,7 @@ function ScannerStateOverlay({
       <Overlay>
         <CircleAlert className="h-7 w-7 text-accent-soft" />
         <p className="max-w-[16rem] text-center text-sm text-white/85">
-          This browser doesn&apos;t support camera capture. Try the photo-upload
-          option instead.
+          This browser doesn&apos;t support camera capture.
         </p>
       </Overlay>
     );
@@ -301,7 +469,8 @@ function ScannerStateOverlay({
       <Overlay>
         <CircleAlert className="h-7 w-7 text-accent-soft" />
         <p className="max-w-[16rem] text-center text-sm text-white/85">
-          We couldn&apos;t reach a camera. Make sure one is connected, then retry.
+          We couldn&apos;t reach a camera. Make sure one is connected, then
+          retry.
         </p>
         <RetryButton onRetry={onRetry} />
       </Overlay>
