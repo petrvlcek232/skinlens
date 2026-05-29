@@ -98,11 +98,11 @@ export function deriveRegions(
   // outward on the "apples" (clear of nose, lips and beard line); under-eye
   // sits directly below each eye; forehead stays below the hairline.
   const regions: RegionCircle[] = [
-    { id: "forehead", center: lerp(eyeMid, foreheadTop, 0.58), radius: 0.2 * d },
-    { id: "rightCheek", center: offset(eyeR, right, down, -0.4, 0.82, d), radius: 0.16 * d },
-    { id: "leftCheek", center: offset(eyeL, right, down, 0.4, 0.82, d), radius: 0.16 * d },
-    { id: "underEyeRight", center: offset(eyeR, right, down, -0.05, 0.4, d), radius: 0.1 * d },
-    { id: "underEyeLeft", center: offset(eyeL, right, down, 0.05, 0.4, d), radius: 0.1 * d },
+    { id: "forehead", center: lerp(eyeMid, foreheadTop, 0.48), radius: 0.18 * d },
+    { id: "rightCheek", center: offset(eyeR, right, down, -0.45, 0.62, d), radius: 0.15 * d },
+    { id: "leftCheek", center: offset(eyeL, right, down, 0.45, 0.62, d), radius: 0.15 * d },
+    { id: "underEyeRight", center: offset(eyeR, right, down, -0.05, 0.36, d), radius: 0.1 * d },
+    { id: "underEyeLeft", center: offset(eyeL, right, down, 0.05, 0.36, d), radius: 0.1 * d },
     { id: "noseTzone", center: lerp(eyeMid, noseTip, 0.5), radius: 0.11 * d },
   ];
 
