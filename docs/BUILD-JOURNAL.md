@@ -272,4 +272,25 @@ re-scan unchanged to see it hold (stability). (2) A new
 heuristic, not a clinical instrument), the self-check recipe, the full
 test-coverage table, and what real clinical validation would require (labeled
 diverse dataset + trained model + agreement metrics). An in-result "How accurate
-is this?" disclosure links it. (Embed route + brand demo still next.)
+is this?" disclosure links it.
+
+---
+
+## Phase 7 — Embeddable widget framing
+
+Made the "I understand your delivery model" point concrete — all one Next app /
+one Vercel deploy, three routes:
+
+- **`/`** — the SkinLens landing (hero + widget) with a footer (Brand demo /
+  Embed / GitHub) and a "See it embedded in a storefront →" CTA.
+- **`/embed`** — the bare, chrome-free widget on a neutral surface; what a brand
+  iframes. `noindex`.
+- **`/demo`** — a *fictional* brand storefront ("Aurélie Skin", distinct identity
+  + plum palette) that embeds `/embed` via `<iframe allow="camera">`, so the
+  embedding reads as cross-site even though it's same-origin. Includes a
+  paste-ready embed snippet (`EmbedSnippet`, copies the live-origin iframe code)
+  and a "no backend, on-device, white-label" pitch.
+
+The iframe genuinely runs the widget in isolation, proving it's self-contained;
+`allow="camera"` is required for getUserMedia inside the frame. All three routes
+serve 200; 63 tests still green.

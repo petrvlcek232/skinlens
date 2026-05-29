@@ -1,4 +1,5 @@
-import { Sparkles, ShieldCheck, Cpu } from "lucide-react";
+import Link from "next/link";
+import { Sparkles, ShieldCheck, Cpu, ArrowRight } from "lucide-react";
 import { SkinAdvisorWidget } from "@/components/scanner/skin-advisor-widget";
 
 export default function Home() {
@@ -30,12 +31,42 @@ export default function Home() {
               Explainable, classical-CV metrics — not a black box
             </Feature>
           </ul>
+
+          <Link
+            href="/demo"
+            className="mt-8 inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent-ink"
+          >
+            See it embedded in a storefront
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
 
         <div className="order-1 lg:order-2">
           <SkinAdvisorWidget />
         </div>
       </section>
+
+      <footer className="mt-8 border-t border-line">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-6 py-6 text-xs text-ink-soft sm:flex-row">
+          <span>SkinLens — on-device AI skin analysis · a portfolio demo</span>
+          <nav className="flex gap-5">
+            <Link href="/demo" className="hover:text-ink">
+              Brand demo
+            </Link>
+            <Link href="/embed" className="hover:text-ink">
+              Embed
+            </Link>
+            <a
+              href="https://github.com/petrvlcek232/skinlens"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-ink"
+            >
+              GitHub
+            </a>
+          </nav>
+        </div>
+      </footer>
     </main>
   );
 }
