@@ -37,6 +37,14 @@ describe("buildRoutine", () => {
     expect(r.summary).toMatch(/maintain/i);
   });
 
+  it("uses neutral core products (not concern-targeted) when nothing is flagged", () => {
+    const r = buildRoutine(analysis({}));
+    const cleanse = r.steps.find((s) => s.slot === "cleanse")!;
+    const moisturize = r.steps.find((s) => s.slot === "moisturize")!;
+    expect(cleanse.product.targets).toHaveLength(0);
+    expect(moisturize.product.targets).toHaveLength(0);
+  });
+
   it("always includes SPF", () => {
     const r = buildRoutine(analysis({ redness: 30, underEye: 20 }));
     expect(r.steps.some((s) => s.product.category === "spf")).toBe(true);

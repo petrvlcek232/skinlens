@@ -23,7 +23,11 @@ const SLOT_ORDER: RoutineSlot[] = [
   "protect",
 ];
 
-/** First catalog product in a category, optionally preferring one that targets a concern. */
+/**
+ * Pick a product in a category. With a `preferTarget`, prefer one that addresses
+ * that concern; otherwise prefer a neutral CORE product (no specific targets) so
+ * the default routine isn't seeded with concern-specific items.
+ */
 function pick(
   category: ProductCategory,
   preferTarget?: ConcernId,
@@ -34,7 +38,10 @@ function pick(
     );
     if (targeted) return targeted;
   }
-  return CATALOG.find((p) => p.category === category);
+  const core = CATALOG.find(
+    (p) => p.category === category && p.targets.length === 0,
+  );
+  return core ?? CATALOG.find((p) => p.category === category);
 }
 
 const CONCERN_LABEL: Record<ConcernId, string> = {

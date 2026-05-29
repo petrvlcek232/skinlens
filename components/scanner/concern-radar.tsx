@@ -18,12 +18,16 @@ export function ConcernRadar({ concerns }: { concerns: ConcernResult[] }) {
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <RadarChart data={data} outerRadius="68%">
+    <ResponsiveContainer width="100%" height={210}>
+      <RadarChart
+        data={data}
+        outerRadius="62%"
+        margin={{ top: 10, right: 34, bottom: 10, left: 34 }}
+      >
         <PolarGrid stroke="var(--color-line)" />
         <PolarAngleAxis
           dataKey="label"
-          tick={{ fontSize: 11, fill: "var(--color-ink-soft)" }}
+          tick={{ fontSize: 10, fill: "var(--color-ink-soft)" }}
         />
         <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
         <Radar
