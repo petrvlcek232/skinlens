@@ -173,3 +173,34 @@ the score surface — no double compute.
 (`undefined is not an object (analysis.overallScore)`). The render path is guarded
 (`step === "result" && result && analysis`); a full reload clears it. HMR
 artifact, not a bug — same class as the Phase 3 one.
+
+---
+
+## Phase 5.5 — Lighting quality gate
+
+Prompted by a sharp question: *how do we know there's enough (and even) light
+for a valid scan?* Lighting is the biggest confounder in selfie skin analysis, so
+this had to land before recommendations.
+
+Researched the field (ISO/IEC 29794-5 face image quality, the OFIQ/NIST work, and
+an arxiv paper tying illumination quality to beauty-rec accuracy; plus consumer
+guidance from L'Oréal Skin Genius / La Roche-Posay). Built `lib/vision/lighting.ts`
+([ADR-012](./DECISIONS.md#adr-012--lighting-quality-gate-tone-robust)) reading the
+already-sampled regions (zero extra cost):
+
+- **Exposure clipping** — crushed (≈0) / blown (≈255) pixel fractions.
+- **Brightness band** with a conservative darkness floor.
+- **Left/right-cheek uniformity** — the ISO-29794-5 side-light detector.
+
+Wired live into the scanner: a throttled (4×/s) lighting read drives a top-right
+"Light NN" badge, gates the scan button (with a hint — "Too dark", "Lighting is
+uneven", "Too bright"), and is stored on the `ScanResult` as a confidence shown on
+the result.
+
+**Tone-robust by design.** The decisive signals (clipping, left/right uniformity)
+don't depend on skin tone; we avoid an absolute brightness gate that would punish
+darker skin. A test asserts a dark-but-evenly-lit face passes as "good," not
+"dim." Honest caveat documented: separating dark-skin-in-good-light from
+light-skin-in-dim-light from one frame is an open problem — so we gate on the
+robust signals and show a confidence rather than feigning certainty. 50 tests
+green.

@@ -204,3 +204,33 @@ lighting. Rather than ship a metric we can't defend, we cut it. Texture (varianc
 of Laplacian on the beard-free forehead) is kept but normalized by luminance and
 flagged as lighting/resolution-sensitive — an estimate, not a pore count.
 Four metrics we can stand behind beat five with a shaky one.
+
+---
+
+## ADR-012 — Lighting quality gate (tone-robust)
+
+**Context.** Lighting is the single biggest confounder in selfie skin analysis —
+a dim or side-lit scene can swing every metric. A scan taken in bad light gives
+confident-looking but wrong results, which would poison the whole funnel.
+
+**Decision.** Add a real-time **lighting gate** (`lib/vision/lighting.ts`) that
+runs on the already-sampled face regions (zero extra cost). It assesses three
+things, following ISO/IEC 29794-5 face-image-quality practice: **exposure
+clipping** (fraction of crushed ≈0 and blown ≈255 pixels), **brightness band**,
+and **left/right-cheek uniformity** (harsh side-light detector). The scan is
+gated on it (the button disables with a hint like "Too dark — find more light"),
+and the result carries a lighting **confidence** (level + 0–100 score).
+
+**Rationale.** Industry tools (Revieve, L'Oréal Skin Genius) explicitly guide on
+lighting before capture, and research ties illumination quality directly to
+beauty-recommendation accuracy. Crucially, the gate is **tone-robust**: the
+primary signals are exposure clipping and left/right uniformity — clipping is bad
+regardless of skin tone, and uniformity is a within-face delta. We deliberately
+avoid an absolute brightness threshold as the main gate (it would penalize darker
+skin, whose face luminance is legitimately lower); only a conservative darkness
+floor catches genuine near-darkness. Honest limitation: perfectly separating
+"dark skin in good light" from "light skin in dim light" from one image is an
+open problem (the illumination-dataset diversity gap is documented) — so we gate
+on the tone-robust signals and surface a confidence rather than pretending
+certainty. Enforced by a test asserting dark-but-evenly-lit skin passes as
+"good," not "dim."

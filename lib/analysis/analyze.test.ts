@@ -55,6 +55,7 @@ function makeResult(
   return {
     regionStats: regionStats(map),
     framesAccumulated: 100,
+    lighting: { ok: true, level: "good", hint: "", score: 85 },
     imageData: solidFrame(frame),
     landmarks: frontalLandmarks(),
     width: W,

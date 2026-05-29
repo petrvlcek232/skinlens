@@ -66,6 +66,8 @@ export interface RegionSampleStats {
 export interface ScanResult {
   regionStats: RegionSampleStats[];
   framesAccumulated: number;
+  /** Lighting conditions during the scan — drives a confidence note. */
+  lighting: import("./lighting").LightingQuality;
   /** Final frame, native resolution, un-mirrored — for texture + rendering. */
   imageData: ImageData;
   landmarks: Landmark[];

@@ -50,7 +50,7 @@ export function SkinAdvisorWidget() {
             Scan again
           </Button>
           <p className="text-center text-xs text-ink-soft">
-            {`Measured on-device across ${result.framesAccumulated} frames · personalized routine next.`}
+            {`Lighting: ${result.lighting.level} (${result.lighting.score}/100) · ${result.framesAccumulated} frames averaged on-device`}
           </p>
         </div>
       </div>
