@@ -183,3 +183,24 @@ shadcn style using `cva` + a `cn()` helper.
 **Rationale.** We need two or three primitives, not a registry. Hand-writing them
 avoids CLI friction, keeps full control of styling tokens, and is faster than
 debugging an init on a bleeding-edge stack.
+
+---
+
+## ADR-011 — Four honest concerns; dropped "shine/oiliness"
+
+**Context.** The original plan listed five concerns including shine/oiliness in
+the T-zone. Building the metrics surfaced a direct conflict.
+
+**Decision.** Ship **four** concerns — redness, tone evenness, under-eye,
+texture — and **drop shine/oiliness**. Texture is included but explicitly
+labelled heuristic and given the lowest weight (0.2).
+
+**Rationale.** Shine *is* specular highlight — but our robust per-frame sampler
+deliberately **rejects** bright outliers (glare) so beards/glasses don't skew
+color metrics ([ADR-008](#adr-008--inclusivity-by-design-relative-to-baseline-metrics--robust-sampling)).
+Measuring shine would require keeping exactly what we throw away, and worse, a
+window reflection is indistinguishable from oily skin without controlled
+lighting. Rather than ship a metric we can't defend, we cut it. Texture (variance
+of Laplacian on the beard-free forehead) is kept but normalized by luminance and
+flagged as lighting/resolution-sensitive — an estimate, not a pore count.
+Four metrics we can stand behind beat five with a shaky one.

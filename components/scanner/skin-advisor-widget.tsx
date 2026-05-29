@@ -4,6 +4,7 @@ import { useState } from "react";
 import { RotateCcw, CheckCircle2 } from "lucide-react";
 import { FaceScanner } from "./face-scanner";
 import { CapturedPreview } from "./captured-preview";
+import { AnalysisResult } from "./analysis-result";
 import { Button } from "@/components/ui/button";
 import type { ScanResult } from "@/lib/vision/types";
 
@@ -27,11 +28,11 @@ export function SkinAdvisorWidget() {
             {result.framesAccumulated} frames averaged
           </div>
         </div>
-        <div className="mt-5 flex flex-col items-center gap-3">
-          <p className="text-center text-sm text-ink-soft">
-            {`${result.regionStats.length} skin regions measured on-device across ${result.framesAccumulated} frames.`}{" "}
-            Scoring &amp; recommendations come next in the build.
-          </p>
+        <div className="mt-4">
+          <AnalysisResult result={result} />
+        </div>
+
+        <div className="mt-5 flex flex-col items-center gap-2">
           <Button
             variant="secondary"
             size="lg"
@@ -44,6 +45,9 @@ export function SkinAdvisorWidget() {
             <RotateCcw className="h-5 w-5" />
             Scan again
           </Button>
+          <p className="text-center text-xs text-ink-soft">
+            {`Measured on-device across ${result.framesAccumulated} frames · personalized routine next.`}
+          </p>
         </div>
       </div>
     );

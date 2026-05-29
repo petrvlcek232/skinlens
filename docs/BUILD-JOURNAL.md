@@ -119,4 +119,33 @@ Inclusivity requirement captured as a hard rule for Phase 4
 
 ## Phase 4 — Analysis metrics & scoring
 
-_(in progress — documented as it lands)_
+Built the analysis engine in `lib/analysis/` over the `ScanResult`. Every concern
+is computed **relative to the person's own skin**
+([ADR-008](./DECISIONS.md#adr-008--inclusivity-by-design-relative-to-baseline-metrics--robust-sampling)):
+
+- **Redness** — central-face (cheeks + nose) `a*` minus forehead `a*`.
+- **Under-eye** — cheek `L*` minus under-eye `L*`.
+- **Tone evenness** — std dev of `L*` across all regions.
+- **Texture** — variance of the Laplacian on the forehead patch (final frame),
+  luminance-normalized.
+
+Each delta maps through `scoreFromDelta()` to a 0–100 health score; the composite
+is a documented weighted average (redness .30 / evenness .25 / under-eye .25 /
+texture .20). Severity buckets: ≥75 good, 50–74 moderate, <50 attention.
+
+**Discovery → dropped a concern.** Planned five concerns, but shine/oiliness
+collided with the design: our robust sampler *rejects* the bright specular pixels
+that shine is made of, and a window reflection is indistinguishable from oily
+skin without controlled lighting. Cut it rather than ship something undefendable
+([ADR-011](./DECISIONS.md#adr-011--four-honest-concerns-dropped-shineoiliness)).
+
+**Inclusivity is enforced by tests, not just intent.** `metrics.test.ts` asserts
+that a *uniform dark face* scores a perfect under-eye (delta = 0 → 100), and that
+an equal relative under-eye contrast flags the same on dark and light skin.
+`analyze.test.ts` checks that a uniform dark face gets the same high overall score
+as a light one. If someone later swaps a relative metric for an absolute
+threshold, these tests fail.
+
+Wired a first result surface (`AnalysisResult`): composite score + four concern
+rows with severity, bars and plain-language detail. Phase 5 upgrades this to a
+gauge + radar + annotated face. 44 tests green.
