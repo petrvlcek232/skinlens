@@ -6,7 +6,9 @@
 > file disagrees with the code, the code wins and this file must be fixed.
 > The *why* behind every significant choice lives in
 > [`docs/DECISIONS.md`](./docs/DECISIONS.md); the build narrative + gotchas live
-> in [`docs/BUILD-JOURNAL.md`](./docs/BUILD-JOURNAL.md). Keep both current.
+> in [`docs/BUILD-JOURNAL.md`](./docs/BUILD-JOURNAL.md); honest accuracy
+> positioning + test coverage in [`docs/VALIDATION.md`](./docs/VALIDATION.md).
+> Keep them current.
 
 ## What this is
 

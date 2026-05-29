@@ -1,8 +1,13 @@
 "use client";
 
+import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { ScoreGauge } from "./score-gauge";
 import { ConcernRadar } from "./concern-radar";
-import type { Severity, SkinAnalysis } from "@/lib/analysis/analyze";
+import type {
+  ConcernId,
+  Severity,
+  SkinAnalysis,
+} from "@/lib/analysis/analyze";
 import { cn } from "@/lib/utils";
 
 const SEVERITY: Record<
@@ -20,8 +25,43 @@ function overallSeverity(score: number): Severity {
   return "attention";
 }
 
-export function AnalysisResult({ analysis }: { analysis: SkinAnalysis }) {
+/** A small ▲/▼ change badge vs the previous scan. */
+function Delta({ value }: { value: number }) {
+  if (value === 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[11px] text-ink-soft">
+        <Minus className="h-3 w-3" /> 0
+      </span>
+    );
+  }
+  const up = value > 0;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 text-[11px] font-medium",
+        up ? "text-sage" : "text-accent",
+      )}
+    >
+      {up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+      {Math.abs(value)}
+    </span>
+  );
+}
+
+export function AnalysisResult({
+  analysis,
+  previous,
+}: {
+  analysis: SkinAnalysis;
+  previous?: SkinAnalysis | null;
+}) {
   const sev = overallSeverity(analysis.overallScore);
+  const prevById = new Map<ConcernId, number>(
+    (previous?.concerns ?? []).map((c) => [c.id, c.score]),
+  );
+  const overallDelta = previous
+    ? analysis.overallScore - previous.overallScore
+    : null;
 
   return (
     <div className="w-full">
@@ -36,6 +76,11 @@ export function AnalysisResult({ analysis }: { analysis: SkinAnalysis }) {
           >
             {SEVERITY[sev].label}
           </span>
+          {overallDelta !== null && (
+            <span className="mt-1 flex items-center gap-1 text-[11px] text-ink-soft">
+              vs last scan <Delta value={overallDelta} />
+            </span>
+          )}
         </div>
         <div className="w-full sm:w-1/2">
           <ConcernRadar concerns={analysis.concerns} />
@@ -43,37 +88,58 @@ export function AnalysisResult({ analysis }: { analysis: SkinAnalysis }) {
       </div>
 
       <ul className="mt-3 space-y-2.5">
-        {analysis.concerns.map((c) => (
-          <li
-            key={c.id}
-            className="rounded-xl border border-line bg-paper-raised p-3.5"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2 text-sm font-medium text-ink">
-                <span className={cn("h-2 w-2 rounded-full", SEVERITY[c.severity].dot)} />
-                {c.label}
-              </span>
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-[11px] font-medium",
-                  SEVERITY[c.severity].chip,
-                )}
-              >
-                {c.score}
-              </span>
-            </div>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
-              <div
-                className={cn("h-full rounded-full", SEVERITY[c.severity].bar)}
-                style={{ width: `${c.score}%` }}
-              />
-            </div>
-            <p className="mt-2 text-xs leading-relaxed text-ink-soft">
-              {c.detail}
-            </p>
-          </li>
-        ))}
+        {analysis.concerns.map((c) => {
+          const prev = prevById.get(c.id);
+          return (
+            <li
+              key={c.id}
+              className="rounded-xl border border-line bg-paper-raised p-3.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 text-sm font-medium text-ink">
+                  <span className={cn("h-2 w-2 rounded-full", SEVERITY[c.severity].dot)} />
+                  {c.label}
+                </span>
+                <span className="flex items-center gap-2">
+                  {prev !== undefined && <Delta value={c.score - prev} />}
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-[11px] font-medium",
+                      SEVERITY[c.severity].chip,
+                    )}
+                  >
+                    {c.score}
+                  </span>
+                </span>
+              </div>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
+                <div
+                  className={cn("h-full rounded-full", SEVERITY[c.severity].bar)}
+                  style={{ width: `${c.score}%` }}
+                />
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+                {c.detail}
+              </p>
+            </li>
+          );
+        })}
       </ul>
+
+      <details className="mt-3 rounded-xl border border-line bg-paper-raised p-3.5">
+        <summary className="cursor-pointer text-xs font-medium text-ink-soft">
+          How accurate is this?
+        </summary>
+        <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+          SkinLens is an explainable, relative heuristic — not a clinical
+          instrument. Every score is measured against your own skin (so it works
+          across skin tones) and averaged over 100+ frames for stability. To
+          sanity-check it yourself: change one thing (warm a cheek, shift the
+          light) and re-scan — the relevant score should move. Re-scanning in the
+          same conditions should give nearly the same result. See VALIDATION.md
+          in the repo for the full positioning and test coverage.
+        </p>
+      </details>
     </div>
   );
 }

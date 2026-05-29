@@ -261,5 +261,15 @@ FACE_OVAL connections (unique vertices sorted by angle around the centroid), and
 `drawHeatmap` now **clips to that polygon**, lays a baseline tint over the whole
 face, and uses larger overlapping blobs that merge into one continuous map. So
 the whole mesh surface reads as a heatmap and nothing paints outside the face.
-Crow's-feet regions were also pulled inward to stay on-skin. (Embed route + brand
-demo deferred to finish this visual pass first.)
+Crow's-feet regions were also pulled inward to stay on-skin.
+
+**Iteration — "how do I know it's accurate?"** With only one face and no ground
+truth, that's a fair worry. Two responses: (1) the result now keeps the **previous
+scan** and shows per-concern **deltas**, so the app itself is the comparison —
+change one thing and re-scan to see the right score move (responsiveness), or
+re-scan unchanged to see it hold (stability). (2) A new
+[`docs/VALIDATION.md`](./VALIDATION.md) states the honest positioning (relative
+heuristic, not a clinical instrument), the self-check recipe, the full
+test-coverage table, and what real clinical validation would require (labeled
+diverse dataset + trained model + agreement metrics). An in-result "How accurate
+is this?" disclosure links it. (Embed route + brand demo still next.)

@@ -1,30 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { FaceScanner } from "./face-scanner";
 import { CapturedPreview } from "./captured-preview";
 import { AnalysisResult } from "./analysis-result";
 import { Recommendations } from "./recommendations";
 import { Button } from "@/components/ui/button";
-import { analyzeScan } from "@/lib/analysis/analyze";
+import { analyzeScan, type SkinAnalysis } from "@/lib/analysis/analyze";
 import type { ScanResult } from "@/lib/vision/types";
 
 type Step = "scan" | "result";
 
 /**
- * Orchestrates the analyzer flow: real-time scan → analysis result. The
- * recommendation step slots in here next. Analysis is computed once and shared
- * by the annotated-face heatmap and the score/radar surface.
+ * Orchestrates the analyzer flow: real-time scan → analysis → recommendations.
+ * Keeps the previous analysis so the result can show scan-to-scan deltas — a
+ * built-in way to sanity-check responsiveness and stability without a second
+ * reference subject.
  */
 export function SkinAdvisorWidget() {
   const [step, setStep] = useState<Step>("scan");
   const [result, setResult] = useState<ScanResult | null>(null);
-
-  const analysis = useMemo(
-    () => (result ? analyzeScan(result) : null),
-    [result],
-  );
+  const [analysis, setAnalysis] = useState<SkinAnalysis | null>(null);
+  const [previous, setPrevious] = useState<SkinAnalysis | null>(null);
 
   if (step === "result" && result && analysis) {
     return (
@@ -34,7 +32,7 @@ export function SkinAdvisorWidget() {
         </div>
 
         <div className="mt-4">
-          <AnalysisResult analysis={analysis} />
+          <AnalysisResult analysis={analysis} previous={previous} />
         </div>
 
         <Recommendations analysis={analysis} />
@@ -53,10 +51,7 @@ export function SkinAdvisorWidget() {
             Scan again
           </Button>
           <p className="text-center text-xs text-ink-soft">
-            {result.lighting
-              ? `Lighting: ${result.lighting.level} (${result.lighting.score}/100) · `
-              : ""}
-            {`${result.framesAccumulated} frames averaged on-device`}
+            {`Lighting: ${result.lighting?.level ?? "—"} · ${result.framesAccumulated} frames averaged on-device`}
           </p>
         </div>
       </div>
@@ -66,7 +61,9 @@ export function SkinAdvisorWidget() {
   return (
     <FaceScanner
       onScanComplete={(next) => {
+        setPrevious(analysis);
         setResult(next);
+        setAnalysis(analyzeScan(next));
         setStep("result");
       }}
     />
