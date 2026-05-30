@@ -454,3 +454,24 @@ recommendations); the full CV evolution table (what we tried / kept / rejected a
 why); and the engineering-process notes (why a single `main` branch / trunk-based,
 and the verify-then-proceed rule). Temp files left by an interrupted editor write
 were cleaned up.
+
+---
+
+## Phase 11 — Mobile overflow fix
+
+Tested every route at mobile widths (390px and 320px) by measuring
+`documentElement.scrollWidth` vs `clientWidth` and listing every element whose
+right edge crossed the viewport. The static routes (`/`, `/demo`, `/try-on`,
+`/embed`) were clean. The **result state** had a real horizontal scroll
+(scrollWidth 425 > viewport 390).
+
+Cause: the **Recharts** `ConcernRadar`. A Recharts `ResponsiveContainer` inside a
+flex child overshoots its parent because flex items default to `min-width: auto`
+(they won't shrink below content size), so the chart measured a width wider than
+the column. Fix: add `min-w-0` to both flex children of the score/radar row and
+`overflow-hidden` to the radar wrapper (`components/scanner/analysis-result.tsx`).
+
+Re-measured: `scrollWidth === clientWidth` at both 390px and 320px — no
+horizontal scroll. (The only element still extending past the edge is Recharts'
+hidden tooltip portal, which is clipped by the new `overflow-hidden` and does not
+expand the document.) 88 tests still green; build clean.

@@ -66,7 +66,7 @@ export function AnalysisResult({
   return (
     <div className="w-full">
       <div className="flex flex-col items-center gap-4 rounded-[var(--radius-card)] border border-line bg-paper-raised p-5 sm:flex-row sm:items-center sm:gap-2">
-        <div className="flex flex-col items-center sm:w-1/2">
+        <div className="flex min-w-0 flex-col items-center sm:w-1/2">
           <ScoreGauge score={analysis.overallScore} severity={sev} />
           <span
             className={cn(
@@ -82,7 +82,9 @@ export function AnalysisResult({
             </span>
           )}
         </div>
-        <div className="w-full sm:w-1/2">
+        {/* min-w-0 lets this flex child shrink below the chart's intrinsic size;
+            overflow-hidden contains any Recharts ResponsiveContainer overshoot. */}
+        <div className="w-full min-w-0 overflow-hidden sm:w-1/2">
           <ConcernRadar concerns={analysis.concerns} />
         </div>
       </div>
