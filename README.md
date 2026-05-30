@@ -101,6 +101,9 @@ npm run build        # production build
   including the dead ends and why each iteration happened.
 - [`docs/VALIDATION.md`](./docs/VALIDATION.md) — accuracy positioning + test
   coverage.
+- [`docs/LIMITATIONS-AND-ROADMAP.md`](./docs/LIMITATIONS-AND-ROADMAP.md) — candid
+  list of what doesn't work yet (hair/lighting), why, and how to fix it properly;
+  the CV evolution table; and engineering-process notes (branching strategy).
 
 ## Production roadmap (what "for real" would need)
 
