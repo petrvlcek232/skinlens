@@ -109,7 +109,7 @@ export default function DemoPage() {
             <h2 className={`${serif.className} text-3xl`}>Best sellers</h2>
             <span className="text-sm text-[#9c6d83]">Shop all →</span>
           </div>
-          <div className="mt-7 grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="mt-7 grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 lg:grid-cols-4">
             {PRODUCTS.map((p) => (
               <div key={p.name} className="group cursor-pointer">
                 <div
@@ -120,13 +120,17 @@ export default function DemoPage() {
                     shape={p.shape}
                     className="absolute left-1/2 top-1/2 h-[72%] -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 group-hover:scale-105"
                   />
+                  <span className="absolute left-3 top-3 rounded-full bg-white/75 px-2 py-0.5 text-[10px] font-medium text-[#7c4a63] backdrop-blur">
+                    {p.active}
+                  </span>
                 </div>
                 <p className="mt-2.5 text-[11px] uppercase tracking-wide text-[#9c6d83]">
                   {p.category}
                 </p>
                 <p className="text-sm font-medium leading-snug">{p.name}</p>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="text-sm">${p.price}</span>
+                <p className="mt-0.5 text-xs leading-snug text-[#6b5660]">{p.use}</p>
+                <div className="mt-1.5 flex items-center justify-between">
+                  <span className="text-sm font-medium">${p.price}</span>
                   <span className="text-xs font-medium text-[#7c4a63] opacity-0 transition-opacity group-hover:opacity-100">
                     Add to bag
                   </span>

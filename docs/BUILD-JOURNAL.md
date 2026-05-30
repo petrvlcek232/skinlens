@@ -364,3 +364,34 @@ Deliberately **did not** add face recognition to tell people apart — biometric
 identification clashes with the privacy-first promise, our coarse relative
 metrics cant identify a person reliably, and it would feel creepy. The explicit
 picker is honest, testable, and solves the real problem. +9 pure tests (75 total).
+
+---
+
+## Phase 9 — Evidence-backed recommendations (clinical data + real products)
+
+Turned the funnel from a fictional stub into something genuinely useful: a scan
+now maps to clinically-supported actives and real, buyable products
+([ADR-017](./DECISIONS.md#adr-017--evidence-backed-recommendations-clinical-data--real-products)).
+
+Used **two parallel sub-agents** (sonnet, to save tokens) under supervision — one
+compiling an evidence-based dermatology reference (per-concern actives with
+honest high/moderate/limited evidence levels + cautions, Fitzpatrick/Baumann,
+AAD/DermNet/PubMed sources), one researching ~24 real products from public
+retailer pages (The Ordinary, CeraVe, La Roche-Posay, etc.) with factual
+attributes only. I integrated both by hand: reconciled the agents` "tone" with
+the codebase`s "evenness", wired `evidenceFor()` to cross-reference a product`s
+actives against the concern`s clinical ingredients, and surfaced an evidence
+badge + source link on each recommendation. The `/demo` storefront now sells
+real-active-based products with honest descriptions.
+
+**Copyright-clean:** only facts stored; blurbs are original ≤16-word paraphrases
+(enforced by a test); explicit "educational, not affiliated, not medical advice"
+disclaimer in the UI.
+
+**Gotcha worth recording:** during integration, several tool-output channels
+showed non-standard *injected* text (sentences that vitest/grep would never
+print, including ones nudging how to interpret results). I stopped trusting
+stdout, re-verified everything by reading files directly, and that surfaced a
+real bug — the new catalog had no neutral-core moisturizer, so the default
+routine would wrongly pick a concern-specific cream. Added a core product + a
+catalog-integrity test. 84 tests green.

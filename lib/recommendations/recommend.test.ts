@@ -50,6 +50,14 @@ describe("buildRoutine", () => {
     expect(r.steps.some((s) => s.product.category === "spf")).toBe(true);
   });
 
+  it("attaches clinical evidence to a flagged treatment step", () => {
+    const r = buildRoutine(analysis({ redness: 40 }));
+    const treat = r.steps.find((s) => s.slot === "treat");
+    expect(treat?.evidence).toBeDefined();
+    expect(["high", "moderate", "limited"]).toContain(treat?.evidence?.evidence);
+    expect(treat?.evidence?.ingredient.length).toBeGreaterThan(0);
+  });
+
   it("uses a soothing cleanser and a redness serum when redness is flagged", () => {
     const r = buildRoutine(analysis({ redness: 40 }));
     const cleanse = r.steps.find((s) => s.slot === "cleanse")!;

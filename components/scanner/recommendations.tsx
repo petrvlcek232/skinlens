@@ -1,8 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Plus, ShoppingBag } from "lucide-react";
-import { buildRoutine, type RoutineSlot } from "@/lib/recommendations/recommend";
+import { Check, Plus, ShoppingBag, FlaskConical } from "lucide-react";
+import {
+  buildRoutine,
+  type RoutineSlot,
+  type EvidenceNote,
+} from "@/lib/recommendations/recommend";
 import type { SkinAnalysis } from "@/lib/analysis/analyze";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +22,12 @@ const SLOT_LABEL: Record<RoutineSlot, string> = {
   eyes: "Eyes",
   moisturize: "Moisturize",
   protect: "Protect",
+};
+
+const EVIDENCE_STYLE: Record<EvidenceNote["evidence"], string> = {
+  high: "bg-sage-soft text-sage",
+  moderate: "bg-amber-soft text-amber",
+  limited: "bg-line text-ink-soft",
 };
 
 export function Recommendations({ analysis }: { analysis: SkinAnalysis }) {
@@ -74,15 +84,42 @@ export function Recommendations({ analysis }: { analysis: SkinAnalysis }) {
                       ${step.product.priceUsd}
                     </span>
                   </div>
-                  <p className="mt-1 truncate text-sm font-medium text-ink">
+                  <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-ink-soft">
+                    {step.product.brand}
+                  </p>
+                  <p className="truncate text-sm font-medium text-ink">
                     {step.product.name}
                   </p>
                   <p className="text-xs text-ink-soft">
-                    {step.product.keyIngredient}
+                    {step.product.keyActives.join(" · ")}
                   </p>
                   <p className="mt-1.5 text-xs leading-relaxed text-ink">
                     {step.reason}
                   </p>
+                  {step.evidence && (
+                    <p className="mt-1.5 flex items-start gap-1.5 text-[11px] leading-relaxed text-ink-soft">
+                      <FlaskConical className="mt-0.5 h-3 w-3 shrink-0 text-ink-soft" />
+                      <span>
+                        <span
+                          className={cn(
+                            "mr-1 rounded px-1 py-0.5 font-medium",
+                            EVIDENCE_STYLE[step.evidence.evidence],
+                          )}
+                        >
+                          {step.evidence.evidence} evidence
+                        </span>
+                        {step.evidence.ingredient}: {step.evidence.action.toLowerCase()}.
+                      </span>
+                    </p>
+                  )}
+                  <a
+                    href={step.product.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1.5 inline-block text-[11px] text-ink-soft underline-offset-2 hover:text-ink hover:underline"
+                  >
+                    View product →
+                  </a>
                 </div>
               </div>
               <button
@@ -124,7 +161,8 @@ export function Recommendations({ analysis }: { analysis: SkinAnalysis }) {
         </Button>
       </div>
       <p className="mt-2 text-center text-[11px] text-ink-soft">
-        Demo catalog — in production this is the brand&apos;s live product feed.
+        Real products, matched to your scan via clinical evidence. Educational
+        demo — info from public sources, not affiliated, not medical advice.
       </p>
     </div>
   );

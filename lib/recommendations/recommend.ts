@@ -1,13 +1,46 @@
 import type { ConcernId, SkinAnalysis } from "@/lib/analysis/analyze";
+import { CONCERN_INFO, type EvidenceLevel } from "@/lib/clinical/dermatology";
 import { CATALOG, type Product, type ProductCategory } from "./catalog";
 
 export type RoutineSlot = "cleanse" | "treat" | "eyes" | "moisturize" | "protect";
+
+export interface EvidenceNote {
+  ingredient: string;
+  action: string;
+  evidence: EvidenceLevel;
+}
 
 export interface RoutineStep {
   slot: RoutineSlot;
   product: Product;
   /** Why this step is in the routine — references the user's own result. */
   reason: string;
+  /** Clinical backing: a matching active for the targeted concern, if any. */
+  evidence?: EvidenceNote;
+}
+
+/**
+ * Find the best clinically-supported active that this product contains for the
+ * given concern, so the recommendation can cite real evidence (best level first).
+ */
+function evidenceFor(
+  product: Product,
+  concern: ConcernId,
+): EvidenceNote | undefined {
+  const rank: Record<EvidenceLevel, number> = { high: 3, moderate: 2, limited: 1 };
+  const candidates = CONCERN_INFO[concern].ingredients
+    .filter((ing) =>
+      product.keyActives.some((a) => {
+        const an = a.toLowerCase();
+        const inn = ing.name.toLowerCase();
+        return inn.includes(an) || an.includes(inn.split(" ")[0]);
+      }),
+    )
+    .sort((a, b) => rank[b.evidence] - rank[a.evidence]);
+  const best = candidates[0];
+  return best
+    ? { ingredient: best.name, action: best.action, evidence: best.evidence }
+    : undefined;
 }
 
 export interface Routine {
@@ -94,6 +127,7 @@ export function buildRoutine(analysis: SkinAnalysis): Routine {
         slot: "treat",
         product: serum,
         reason: `Targets the ${CONCERN_LABEL[concern.id]} we measured (scored ${concern.score}/100).`,
+        evidence: evidenceFor(serum, concern.id),
       });
     }
   }
@@ -107,6 +141,7 @@ export function buildRoutine(analysis: SkinAnalysis): Routine {
         slot: "eyes",
         product: eye,
         reason: `Your under-eye area scored ${underEye?.score ?? ""}/100 — this brightens and de-puffs.`,
+        evidence: evidenceFor(eye, "underEye"),
       });
     }
   }
