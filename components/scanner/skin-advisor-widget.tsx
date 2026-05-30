@@ -1,28 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { FaceScanner } from "./face-scanner";
 import { CapturedPreview } from "./captured-preview";
 import { AnalysisResult } from "./analysis-result";
+import { SkinHistory } from "./skin-history";
 import { Recommendations } from "./recommendations";
 import { Button } from "@/components/ui/button";
 import { analyzeScan, type SkinAnalysis } from "@/lib/analysis/analyze";
+import {
+  loadHistory,
+  addHistory,
+  type HistoryEntry,
+} from "@/lib/history/skin-history";
 import type { ScanResult } from "@/lib/vision/types";
 
 type Step = "scan" | "result";
 
 /**
- * Orchestrates the analyzer flow: real-time scan → analysis → recommendations.
- * Keeps the previous analysis so the result can show scan-to-scan deltas — a
- * built-in way to sanity-check responsiveness and stability without a second
- * reference subject.
+ * Orchestrates the analyzer flow: real-time scan (or photo upload) → analysis →
+ * recommendations. Keeps the previous analysis for scan-to-scan deltas and an
+ * on-device history (localStorage) for a longer trend.
  */
 export function SkinAdvisorWidget() {
   const [step, setStep] = useState<Step>("scan");
   const [result, setResult] = useState<ScanResult | null>(null);
   const [analysis, setAnalysis] = useState<SkinAnalysis | null>(null);
   const [previous, setPrevious] = useState<SkinAnalysis | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  useEffect(() => {
+    setHistory(loadHistory());
+  }, []);
 
   if (step === "result" && result && analysis) {
     return (
@@ -34,6 +44,8 @@ export function SkinAdvisorWidget() {
         <div className="mt-4">
           <AnalysisResult analysis={analysis} previous={previous} />
         </div>
+
+        <SkinHistory entries={history} />
 
         <Recommendations analysis={analysis} />
 
@@ -51,7 +63,7 @@ export function SkinAdvisorWidget() {
             Scan again
           </Button>
           <p className="text-center text-xs text-ink-soft">
-            {`Lighting: ${result.lighting?.level ?? "—"} · ${result.framesAccumulated} frames averaged on-device`}
+            {`Lighting: ${result.lighting?.level ?? "—"} · ${result.framesAccumulated === 1 ? "from your photo" : `${result.framesAccumulated} frames averaged on-device`}`}
           </p>
         </div>
       </div>
@@ -61,9 +73,11 @@ export function SkinAdvisorWidget() {
   return (
     <FaceScanner
       onScanComplete={(next) => {
+        const nextAnalysis = analyzeScan(next);
         setPrevious(analysis);
         setResult(next);
-        setAnalysis(analyzeScan(next));
+        setAnalysis(nextAnalysis);
+        setHistory(addHistory(nextAnalysis.overallScore));
         setStep("result");
       }}
     />
