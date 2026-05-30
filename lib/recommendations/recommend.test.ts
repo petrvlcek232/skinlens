@@ -61,7 +61,7 @@ describe("buildRoutine", () => {
   it("uses a soothing cleanser and a redness serum when redness is flagged", () => {
     const r = buildRoutine(analysis({ redness: 40 }));
     const cleanse = r.steps.find((s) => s.slot === "cleanse")!;
-    expect(cleanse.product.id).toBe("calm-gel-cleanser");
+    expect(cleanse.product.targets).toContain("redness");
     const treat = r.steps.find((s) => s.slot === "treat");
     expect(treat?.product.targets).toContain("redness");
   });

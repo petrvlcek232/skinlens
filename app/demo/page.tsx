@@ -20,19 +20,27 @@ export const metadata: Metadata = {
 interface Product {
   name: string;
   category: string;
+  active: string;
+  /** What the active does — grounded in the clinical reference data. */
+  use: string;
   price: number;
   shape: BottleShape;
   from: string;
   to: string;
 }
 
+// Aurélie is a fictional brand, but each product is built on a real, evidence-
+// backed active with an honest description (from lib/clinical/dermatology.ts) —
+// realistic and copyright-clean.
 const PRODUCTS: Product[] = [
-  { name: "Velvet Cleansing Balm", category: "Cleanse", price: 28, shape: "tube", from: "#f6dbe5", to: "#e6abc6" },
-  { name: "Rosewater Essence", category: "Treat", price: 34, shape: "dropper", from: "#f9e7ec", to: "#eebfc8" },
-  { name: "Ceramide Day Cream", category: "Moisturize", price: 42, shape: "jar", from: "#f1e8df", to: "#ddc3ac" },
-  { name: "Overnight Retinal Serum", category: "Treat", price: 56, shape: "dropper", from: "#e9dcf1", to: "#c3a9d9" },
-  { name: "Bright Eye Concentrate", category: "Eyes", price: 38, shape: "dropper", from: "#deebf2", to: "#aecde0" },
-  { name: "Mineral Veil SPF 50", category: "Protect", price: 30, shape: "pump", from: "#fceeda", to: "#f2cf9f" },
+  { name: "Velvet Cleansing Balm", category: "Cleanse", active: "Ceramides", use: "Lifts makeup while protecting the skin barrier.", price: 28, shape: "tube", from: "#f6dbe5", to: "#e6abc6" },
+  { name: "Calm Niacinamide Serum", category: "Treat", active: "Niacinamide 10%", use: "Calms redness and refines uneven tone.", price: 34, shape: "dropper", from: "#f9e7ec", to: "#eebfc8" },
+  { name: "Bright Vitamin C Serum", category: "Treat", active: "Vitamin C 15%", use: "Antioxidant that brightens and evens tone.", price: 46, shape: "dropper", from: "#fceeda", to: "#f2cf9f" },
+  { name: "Overnight Retinal Serum", category: "Treat", active: "Retinal 0.2%", use: "Speeds renewal to smooth fine lines.", price: 56, shape: "dropper", from: "#e9dcf1", to: "#c3a9d9" },
+  { name: "Ceramide Day Cream", category: "Moisturize", active: "Ceramides + HA", use: "Repairs the barrier and locks in moisture.", price: 42, shape: "jar", from: "#f1e8df", to: "#ddc3ac" },
+  { name: "Bright Eye Concentrate", category: "Eyes", active: "Caffeine + peptides", use: "De-puffs and softens the under-eye area.", price: 38, shape: "dropper", from: "#deebf2", to: "#aecde0" },
+  { name: "Mineral Veil SPF 50", category: "Protect", active: "Zinc oxide", use: "Mineral broad-spectrum daily protection.", price: 30, shape: "pump", from: "#fceeda", to: "#f2cf9f" },
+  { name: "Smooth AHA Exfoliant", category: "Renew", active: "Glycolic + lactic acid", use: "Resurfaces for smoother, brighter skin.", price: 32, shape: "dropper", from: "#e7dcef", to: "#cdb6de" },
 ];
 
 const NAV = ["New In", "Skincare", "Serums", "Moisturizers", "SPF", "About"];

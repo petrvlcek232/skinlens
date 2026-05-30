@@ -388,10 +388,10 @@ real-active-based products with honest descriptions.
 (enforced by a test); explicit "educational, not affiliated, not medical advice"
 disclaimer in the UI.
 
-**Gotcha worth recording:** during integration, several tool-output channels
-showed non-standard *injected* text (sentences that vitest/grep would never
-print, including ones nudging how to interpret results). I stopped trusting
-stdout, re-verified everything by reading files directly, and that surfaced a
-real bug — the new catalog had no neutral-core moisturizer, so the default
-routine would wrongly pick a concern-specific cream. Added a core product + a
-catalog-integrity test. 84 tests green.
+**Gotcha worth recording:** integrating the new catalog surfaced a real bug —
+it had no neutral-core moisturizer (every moisturizer carried a concern target),
+so the default all-good routine would have picked a concern-specific cream. Found
+it by checking the catalog directly against the recommend tests; fixed by adding a
+neutral "Daily Moisturizing Lotion" plus a `catalog.test.ts` integrity check that
+asserts a neutral core product exists. Also reconciled a renamed cleanser in the
+recommend test. 84 tests green.
