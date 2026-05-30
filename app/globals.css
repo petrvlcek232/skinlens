@@ -49,6 +49,10 @@ body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  /* Global safety net against horizontal scroll on very narrow viewports
+     (e.g. 320px). `clip` (not `hidden`) does NOT create a scroll container, so
+     position: sticky on descendants (the /demo header) keeps working. */
+  overflow-x: clip;
 }
 
 /* Invisible scrollbars everywhere — scrolling still works. */
