@@ -1,5 +1,7 @@
 import { deriveRegions } from "@/lib/vision/regions";
-import type { ScanResult } from "@/lib/vision/types";
+import { sampleDisk } from "@/lib/vision/sampling";
+import { rgbToLab } from "@/lib/vision/color";
+import type { LAB, RGB, ScanResult } from "@/lib/vision/types";
 import {
   toLab,
   baselineSkinLab,
@@ -11,8 +13,14 @@ import {
 import { laplacianVariance, horizontalLineEnergy } from "./texture";
 import { classifySkinTone, type SkinTone } from "@/lib/vision/skin-tone";
 import { rednessThresholdFor } from "./calibration";
+import { detectSpots, spotDensityToScore } from "./blemishes";
 
-export type ConcernId = "redness" | "evenness" | "underEye" | "texture";
+export type ConcernId =
+  | "redness"
+  | "evenness"
+  | "underEye"
+  | "texture"
+  | "blemishes";
 export type Severity = "good" | "moderate" | "attention";
 
 export interface ConcernResult {
@@ -33,15 +41,29 @@ export interface SkinAnalysis {
 }
 
 /** Concern weights for the composite. Documented in docs/DECISIONS.md. */
+// Rebalanced to make room for blemishes (the most visually salient concern on
+// problem skin — a test photo with heavy acne scoring "Worth watching" exposed
+// that omitting it over-scored such faces; see BUILD-JOURNAL phase 13 / ADR-020).
 const WEIGHTS: Record<ConcernId, number> = {
-  redness: 0.3,
-  evenness: 0.25,
-  underEye: 0.25,
-  texture: 0.2,
+  blemishes: 0.3,
+  redness: 0.25,
+  evenness: 0.2,
+  underEye: 0.15,
+  texture: 0.1,
 };
 
 function avg(ns: number[]): number {
   return ns.length ? ns.reduce((a, b) => a + b, 0) / ns.length : 0;
+}
+
+/** Mean CIELAB over a set of RGB pixels. */
+function meanLab(pixels: RGB[]): LAB {
+  const labs = pixels.map(rgbToLab);
+  return {
+    l: avg(labs.map((c) => c.l)),
+    a: avg(labs.map((c) => c.a)),
+    b: avg(labs.map((c) => c.b)),
+  };
 }
 
 function severityOf(score: number): Severity {
@@ -74,6 +96,12 @@ function textureDetail(score: number): string {
   return "Pronounced lines/texture on the forehead — heuristic estimate, lighting-sensitive.";
 }
 
+function blemishDetail(score: number): string {
+  if (score >= 75) return "Few spots detected — skin reads mostly clear.";
+  if (score >= 50) return "Some spots/blemishes across the cheeks and forehead.";
+  return "Many spots detected — heuristic density, not a clinical acne grade.";
+}
+
 /**
  * Turn a multi-frame scan into a per-concern + composite skin assessment.
  * Color concerns read the temporally averaged region colors; texture reads the
@@ -82,9 +110,37 @@ function textureDetail(score: number): string {
 export function analyzeScan(result: ScanResult): SkinAnalysis {
   const lab = toLab(result.regionStats);
 
-  // Skin tone first — redness thresholds are tone-relative (data-driven).
-  const baseline = baselineSkinLab(lab);
-  const skinTone = baseline ? classifySkinTone(baseline) : null;
+  const regions = deriveRegions(
+    result.landmarks,
+    result.width,
+    result.height,
+  );
+  const half = (r: { radius: number }) => Math.max(4, Math.round(r.radius * 0.8));
+  const byIds = (ids: string[]) =>
+    (regions ?? []).filter((r) => ids.includes(r.id));
+
+  // Spot/blemish detection over cheeks + forehead + nose pixels. One pass yields
+  // both the blemish-density concern AND a clear-skin pixel set used for a
+  // freckle-robust tone estimate (excluding spots so freckles don't darken ITA).
+  const skinZones = byIds([
+    "leftCheek",
+    "rightCheek",
+    "forehead",
+    "foreheadLeft",
+    "foreheadRight",
+    "noseTzone",
+  ]);
+  const skinPixels: RGB[] = skinZones.flatMap((r) =>
+    sampleDisk(result.imageData, r.center, r.radius, 2),
+  );
+  const spots = detectSpots(skinPixels);
+  const blemishes = spotDensityToScore(spots.density);
+
+  // Skin tone — prefer the freckle-robust clear-skin mean; fall back to the
+  // region-median baseline if too few clear pixels.
+  const clearLab: LAB | null =
+    spots.clearSkin.length >= 50 ? meanLab(spots.clearSkin) : baselineSkinLab(lab);
+  const skinTone = clearLab ? classifySkinTone(clearLab) : null;
 
   // Redness uses calibrated, tone-aware thresholds from the labeled-dataset
   // calibration (lib/analysis/calibration.json) instead of hand-picked numbers.
@@ -101,14 +157,6 @@ export function analyzeScan(result: ScanResult): SkinAnalysis {
   // Texture & fine lines: the forehead band gives horizontal-line energy (brow
   // lines run horizontally); crow's feet and nasolabial folds add isotropic
   // texture from the other line-prone zones that matter most for mature skin.
-  const regions = deriveRegions(
-    result.landmarks,
-    result.width,
-    result.height,
-  );
-  const half = (r: { radius: number }) => Math.max(4, Math.round(r.radius * 0.8));
-  const byIds = (ids: string[]) =>
-    (regions ?? []).filter((r) => ids.includes(r.id));
 
   const forehead = byIds(["forehead", "foreheadLeft", "foreheadRight"]);
   const lineZones = byIds([
@@ -136,6 +184,13 @@ export function analyzeScan(result: ScanResult): SkinAnalysis {
   }
 
   const concerns: ConcernResult[] = [
+    {
+      id: "blemishes",
+      label: "Spots & blemishes",
+      score: blemishes,
+      severity: severityOf(blemishes),
+      detail: blemishDetail(blemishes),
+    },
     {
       id: "redness",
       label: "Redness & sensitivity",

@@ -78,6 +78,7 @@ function pick(
 }
 
 const CONCERN_LABEL: Record<ConcernId, string> = {
+  blemishes: "spots & blemishes",
   redness: "redness",
   evenness: "uneven tone",
   underEye: "under-eye darkness",

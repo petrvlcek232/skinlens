@@ -46,6 +46,30 @@ export interface Source {
 }
 
 export const CONCERN_INFO: Record<ConcernId, ConcernInfo> = {
+  blemishes: {
+    id: "blemishes",
+    label: "Spots & blemishes",
+    summary:
+      "Visible spots — acne papules/pustules, clogged pores, or post-inflammatory marks.",
+    causes: [
+      "Excess sebum plus dead-cell buildup clogging follicles",
+      "C. acnes overgrowth driving inflammatory lesions",
+      "Hormonal shifts increasing oil production",
+      "Comedogenic products or friction aggravating pores",
+    ],
+    ingredients: [
+      { name: "Salicylic acid (BHA)", action: "Oil-soluble; exfoliates inside the pore to clear clogs", evidence: "high", caution: "Can dry/irritate; build up slowly" },
+      { name: "Azelaic acid", action: "Antimicrobial + anti-inflammatory; fades post-acne marks", evidence: "high", caution: "Mild tingling at first" },
+      { name: "Benzoyl peroxide", action: "Kills C. acnes; gold standard for inflammatory acne", evidence: "high", caution: "Bleaches fabric; can dry skin" },
+      { name: "Niacinamide", action: "Calms inflammation and regulates sebum", evidence: "moderate", caution: "" },
+      { name: "Retinoids", action: "Normalize cell turnover, preventing clogged pores", evidence: "high", caution: "Avoid in pregnancy; introduce slowly" },
+    ],
+    habits: [
+      "Don't pick — it drives scarring and dark marks",
+      "Use non-comedogenic, oil-free products",
+      "Introduce one active at a time to avoid over-irritation",
+    ],
+  },
   redness: {
     id: "redness",
     label: "Redness & sensitivity",
