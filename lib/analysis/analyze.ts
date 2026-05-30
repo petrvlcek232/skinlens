@@ -170,8 +170,5 @@ export function analyzeScan(result: ScanResult): SkinAnalysis {
     concerns.reduce((sum, c) => sum + c.score * WEIGHTS[c.id], 0),
   );
 
-  const baseline = baselineSkinLab(lab);
-  const skinTone = baseline ? classifySkinTone(baseline) : null;
-
   return { overallScore, concerns, skinTone };
 }
