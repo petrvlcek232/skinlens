@@ -104,6 +104,9 @@ npm run build        # production build
 - [`docs/LIMITATIONS-AND-ROADMAP.md`](./docs/LIMITATIONS-AND-ROADMAP.md) — candid
   list of what doesn't work yet (hair/lighting), why, and how to fix it properly;
   the CV evolution table; and engineering-process notes (branching strategy).
+- [`docs/SKIN-TONE-METHODOLOGY.md`](./docs/SKIN-TONE-METHODOLOGY.md) — how skin
+  tone is estimated (ITA → Monk scale), why Monk not Fitzpatrick, and the
+  data-driven threshold-calibration plan.
 
 ## Production roadmap (what "for real" would need)
 
