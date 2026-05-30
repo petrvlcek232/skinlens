@@ -5,6 +5,7 @@ import { RotateCcw, UserRound } from "lucide-react";
 import { FaceScanner } from "./face-scanner";
 import { CapturedPreview } from "./captured-preview";
 import { AnalysisResult } from "./analysis-result";
+import { AICoachPanel } from "./ai-coach-panel";
 import { SkinHistory } from "./skin-history";
 import { Recommendations } from "./recommendations";
 import { ProfileSwitcher } from "./profile-switcher";
@@ -81,6 +82,8 @@ export function SkinAdvisorWidget() {
         <div className="mt-4">
           <AnalysisResult analysis={analysis} previous={previous} />
         </div>
+
+        <AICoachPanel analysis={analysis} name={scanFor} />
 
         <SkinHistory entries={active?.history ?? []} name={scanFor} />
 

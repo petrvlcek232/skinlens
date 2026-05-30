@@ -557,3 +557,51 @@ existing redness/inclusivity tests still green against the new numbers.
 Dataset moved into `datasets/` (raw images gitignored; README + attribution +
 derived JSON committed). Full method, results table, and honest limits in
 [`CALIBRATION.md`](./CALIBRATION.md).
+
+---
+
+## Phase 13 — What each test face taught us (blemish proxy + freckle-robust tone)
+
+The most honest phase, and the most valuable: **every new test photo exposed a new
+limit**, and chasing them is how a demo becomes a real product.
+
+A face with visibly heavy acne scored a too-kind **67 "Worth watching."** Root
+cause wasn't a bug — it was a *gap*: the engine measured redness, tone, under-eye
+and texture, but **never spots themselves**. Acne only leaked in indirectly. Two
+problems surfaced at once: (1) no spot/blemish signal at all; (2) the same face
+(and freckled faces generally) read as **Monk 5 "Medium"** when clearly lighter,
+because freckles/spots pull the median L* down, dragging ITA "darker."
+
+Fix — one detection pass, two uses (ADR-020). `lib/analysis/blemishes.ts`: within
+the skin pixels, a *spot* is a pixel deviating strongly (in MAD units) from the
+region's own clear-skin baseline — redder and/or darker, so tone-relative
+(ADR-008). The pass returns a **spot density** → new "Spots & blemishes" concern
+(weight 0.30), AND a **clear-skin mask** → freckle-robust ITA. Verified: clean
+face blemishes 100; ~15%-spotted face blemishes ~44 / overall ~70 with tone still
+Monk 2 Light (exclusion works). Wired into clinical data + catalog targets. +17
+tests. Honest limit: density heuristic, not lesion grading — can't tell a freckle
+from a pimple (LIMITATIONS §1.4/1.5).
+
+---
+
+## Phase 14 — Simulated AI skin coach (real-LLM-ready)
+
+Revieve uses LLMs (AI Beauty Advisor) to explain skin data conversationally. Added
+that layer as **real architecture with a simulated brain** (ADR-021):
+`lib/coach/` — a `CoachProvider` interface, a deterministic on-device
+`TemplateCoachProvider` (composes a natural-language reading from the structured
+analysis + clinical data; reproducible, free, private), and an inert
+`OpenAICoachProvider` stub showing exactly where a real LLM + RAG would slot in
+behind the same interface. `AICoachPanel` renders it on the result with an
+"On-device · rule-based" badge so the simulation is never passed off as a model;
+`CoachMessage.source` carries `rule-based` vs `llm`.
+
+Full design — where the LLM belongs, RAG over a vector store of the dermatology
+references, prompting with numbers not the image (privacy), why the demo simulates
+it, and what real AI would add — in [`AI-ARCHITECTURE.md`](./AI-ARCHITECTURE.md).
+The pitch line: *the AI layer is real architecture with a simulated brain — a real
+LLM drops in behind one interface.* +5 tests (119 total).
+
+**Doc-drift note:** found that phases 12–13's journal entries and ADR-020 hadn't
+persisted from an earlier interrupted multi-edit batch; restored here, and the ADR
+sequence audited back to a clean 001–021.

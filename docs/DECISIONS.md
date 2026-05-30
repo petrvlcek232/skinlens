@@ -424,3 +424,58 @@ finding. Honest scope recorded in `CALIBRATION.md`: Node can't use MediaPipe
 landmarks so the harness approximates regions with fixed bands; only redness is
 dataset-calibrated so far; cosmetic not clinical. The harness is dataset-agnostic
 — point it at any labeled face set and re-derive.
+
+---
+
+## ADR-020 — Spot/blemish density proxy + freckle-robust tone (one pass, two uses)
+
+**Context.** A heavy-acne test photo scored a too-kind 67: the engine never
+measured spots directly (acne only leaked into redness/tone), and freckles/spots
+darkened the median, mis-estimating skin tone as Monk 5 when it was lighter.
+
+**Decision.** A single spot-detection pass (`lib/analysis/blemishes.ts`) over the
+skin-region pixels flags pixels that deviate strongly (in MAD units) from the
+region's clear-skin baseline — redder (a*) and/or darker (L*). It returns both a
+**spot density** (new "Spots & blemishes" concern, weight 0.30) and the
+**clear-skin pixel set**, from which tone (ITA→Monk) is computed — so freckles no
+longer darken the tone estimate. Blemishes wired into clinical data (salicylic
+acid, azelaic, benzoyl peroxide, retinoids) + catalog targets so spotty scans
+recommend the right actives. Weights rebalanced (blemishes .30 / redness .25 /
+evenness .20 / under-eye .15 / texture .10).
+
+**Rationale.** Spots are the most visually salient concern on problem skin, so
+omitting them over-scores exactly the faces that need help most — the test photo
+proved it. Defining a spot *relative to the same face's baseline* keeps it
+tone-independent (ADR-008). Reusing the clear-skin mask for tone is the elegant
+part: one detection fixes both the missing concern and the freckle tone bias.
+Honest scope: this is a density **heuristic**, not clinical acne grading — it
+can't count or classify lesions, and can't distinguish a freckle from a pimple
+(both are "spots"). That needs a trained CNN (ADR-006) — documented as roadmap.
+
+---
+
+## ADR-021 — AI coach: simulated on-device, real-LLM-ready behind one interface
+
+**Context.** Revieve uses LLMs (AI Beauty Advisor) to interpret skin data in
+natural language. The demo should show this capability — but shipping a real LLM
+means an API key in a public repo, the scan leaving the device, a vector DB for
+RAG, and per-call cost, all of which contradict the on-device premise (ADR-003)
+and aren't appropriate for a portfolio demo.
+
+**Decision.** Build the AI layer as real architecture with a swappable brain.
+A `CoachProvider` interface (`lib/coach/types.ts`) is implemented today by a
+**deterministic, on-device `TemplateCoachProvider`** that composes a
+natural-language reading from the structured analysis + clinical data. A
+reference `OpenAICoachProvider` stub documents exactly where a real LLM (with RAG
+over a vector store of the dermatology references) would slot in — same interface,
+same `CoachMessage` output, so the UI doesn't change. The UI shows an "On-device ·
+rule-based" badge; `CoachMessage.source` distinguishes `rule-based` vs `llm`.
+
+**Rationale.** This proves the architecture (where the LLM belongs, how to ground
+it with RAG, how to keep it private, how to make it swappable) without the
+downsides of a real model in a demo. Putting the LLM only on the *language* layer
+— never the scoring — keeps mistakes recoverable (wording, not a medical number)
+and the face on-device (the model would get anonymous numbers, never the image).
+Labelling the simulation honestly is the point: a deliberate, documented choice
+beats bolting on an API to look impressive. Full design (RAG, prompt shape,
+privacy options, what real AI adds) in docs/AI-ARCHITECTURE.md.
