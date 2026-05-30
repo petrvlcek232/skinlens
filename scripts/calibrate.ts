@@ -242,7 +242,7 @@ async function main() {
   }
 
   if (ok > 0) {
-    const outPath = join(process.cwd(), args.out);
+    const outPath = args.out.startsWith("/") ? args.out : join(process.cwd(), args.out);
     mkdirSync(dirname(outPath), { recursive: true });
     writeFileSync(outPath, JSON.stringify(calibration, null, 2) + "\n");
     console.log(`\nWrote ${args.out}`);

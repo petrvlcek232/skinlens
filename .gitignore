@@ -45,3 +45,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# calibration harness artifacts (dev-time only)
+calibration.db
+/lib/analysis/calibration.json
