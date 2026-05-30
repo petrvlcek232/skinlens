@@ -3,8 +3,14 @@
 import type { HistoryEntry } from "@/lib/history/skin-history";
 import { cn } from "@/lib/utils";
 
-/** A small on-device trend of skin score across past scans (localStorage). */
-export function SkinHistory({ entries }: { entries: HistoryEntry[] }) {
+/** A small on-device trend of skin score across past scans, per person. */
+export function SkinHistory({
+  entries,
+  name,
+}: {
+  entries: HistoryEntry[];
+  name: string;
+}) {
   if (entries.length < 2) return null;
 
   const scores = entries.map((e) => e.score);
@@ -30,7 +36,7 @@ export function SkinHistory({ entries }: { entries: HistoryEntry[] }) {
   return (
     <div className="mt-3 rounded-xl border border-line bg-paper-raised p-4">
       <div className="flex items-baseline justify-between">
-        <p className="text-sm font-medium text-ink">Your skin over time</p>
+        <p className="text-sm font-medium text-ink">{name}&apos;s skin over time</p>
         <span className="text-xs text-ink-soft">{entries.length} scans</span>
       </div>
       <svg

@@ -346,3 +346,21 @@ small but compounding:
 
 Net: the project reads as a usable product backed by honest engineering, not a
 one-screen tech toy.
+
+---
+
+## Phase 8.5 — Per-person profiles (no DB, no biometrics)
+
+Testing on two people (a user + their partner) exposed a real bug: the
+localStorage history is per-device, so it blended both peoples scores into one
+trend. Solved with explicit profiles
+([ADR-016](./DECISIONS.md#adr-016--per-person-history-via-explicit-profiles-not-face-recognition)):
+a "Whos scanning?" switcher (Me / + Add person) in `lib/history/profiles.ts`,
+per-profile history, legacy flat history migrated into a "Me" profile. The active
+person is shown on the scan screen ("Scanning as …"), on the result ("Results
+for …") and on the trend ("Names skin over time").
+
+Deliberately **did not** add face recognition to tell people apart — biometric
+identification clashes with the privacy-first promise, our coarse relative
+metrics cant identify a person reliably, and it would feel creepy. The explicit
+picker is honest, testable, and solves the real problem. +9 pure tests (75 total).
