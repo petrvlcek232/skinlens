@@ -320,3 +320,29 @@ serif display face (Fraunces) for the brand wordmark + headings, hover-lift
 micro-interactions on cards/CTAs, a fade-up hero entrance, and **globally hidden
 scrollbars** (scrolling intact). The result and storefront now look intentional,
 not scaffolded.
+
+---
+
+## Phase 8 — From demo to product (upload, history, AR, CI, README)
+
+A round of "what could realistically make this land" — four additions, each
+small but compounding:
+
+- **Photo-upload fallback** — the launch screen and every camera-error state now
+  offer "upload a photo," running the IMAGE-mode landmarker on a still (single
+  frame, same metrics). Reviewers without a camera (or on a locked-down laptop)
+  still get a full result.
+- **On-device history** — `lib/history/skin-history.ts` keeps a capped, safe-
+  parsed log of scores in localStorage; the result shows a sparkline trend +
+  first→latest delta. The beauty "track your skin over time" hook, no backend.
+- **AR lipstick try-on** (`/try-on`) — a *second* product on the same mesh: lip
+  contours filled with an even-odd rule (mouth opening stays clear), multiply
+  blend for a natural stain, 5 shades, launch-on-gesture. "One mesh, two
+  products."
+- **CI + README** — GitHub Actions runs typecheck + tests + build on every push;
+  the README is rebuilt as the portfolio entry point (what it is, honest
+  positioning, architecture, run steps, docs index, production roadmap, and a
+  "built with Claude Code" note pointing at this very journal + the ADRs).
+
+Net: the project reads as a usable product backed by honest engineering, not a
+one-screen tech toy.
