@@ -6,7 +6,14 @@ import {
   FaceLandmarker,
   type NormalizedLandmark,
 } from "@mediapipe/tasks-vision";
-import { ShieldCheck, RotateCcw, CircleAlert, Loader2, ScanFace } from "lucide-react";
+import {
+  ShieldCheck,
+  RotateCcw,
+  CircleAlert,
+  Loader2,
+  ScanFace,
+  ImageUp,
+} from "lucide-react";
 import { useCamera } from "@/hooks/use-camera";
 import { getFaceLandmarker } from "@/lib/vision/landmarker";
 import { assessFraming, type Framing } from "@/lib/vision/quality";
@@ -66,12 +73,69 @@ export function FaceScanner({ onScanComplete }: FaceScannerProps) {
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadError, setUploadError] = useState(false);
+
   // Camera is requested only on explicit user action — never on mount — so the
   // widget can sit on a page (or in a brand's iframe) without prompting.
   const begin = useCallback(() => {
     setStarted(true);
     void start();
   }, [start]);
+
+  // Photo-upload fallback: analyze a single still via the IMAGE-mode landmarker.
+  // No multi-frame averaging (one photo), but the same regions + metrics + lighting.
+  const analyzePhoto = useCallback(async (file: File) => {
+    setUploadError(false);
+    try {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.decoding = "async";
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("image load failed"));
+        img.src = url;
+      });
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) throw new Error("no 2d context");
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+
+      const landmarker = await getFaceLandmarker("IMAGE");
+      const result = landmarker.detect(img);
+      const face = result.faceLandmarks[0];
+      const regions = face ? deriveRegions(face, w, h) : null;
+      if (!face || !regions) {
+        setUploadError(true);
+        return;
+      }
+
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const sampled = sampleRegions(imageData, regions);
+      const acc = createAccumulator();
+      accumulateFrame(acc, sampled);
+
+      onCompleteRef.current({
+        regionStats: finalizeScan(acc),
+        framesAccumulated: 1,
+        lighting: assessLighting(sampled),
+        imageData,
+        landmarks: face,
+        width: w,
+        height: h,
+        preview: canvas.toDataURL("image/jpeg", 0.92),
+      });
+    } catch {
+      setUploadError(true);
+    }
+  }, []);
+
+  const pickPhoto = useCallback(() => fileInputRef.current?.click(), []);
 
   const finishScan = useCallback(() => {
     scanningRef.current = false;
@@ -296,6 +360,17 @@ export function FaceScanner({ onScanComplete }: FaceScannerProps) {
           <canvas ref={canvasRef} className="absolute inset-0 h-full w-full object-cover" />
         </div>
         <canvas ref={sampleCanvasRef} className="hidden" />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void analyzePhoto(file);
+            e.target.value = "";
+          }}
+        />
 
         <CircularGuide active={framing.ready && !lightingBlocks} scanning={scanning} />
 
@@ -337,7 +412,13 @@ export function FaceScanner({ onScanComplete }: FaceScannerProps) {
           </div>
         )}
 
-        {!started && !modelError && <LaunchOverlay onStart={begin} />}
+        {!started && !modelError && (
+          <LaunchOverlay
+            onStart={begin}
+            onUpload={pickPhoto}
+            uploadError={uploadError}
+          />
+        )}
 
         {started && (
           <ScannerStateOverlay
@@ -345,6 +426,7 @@ export function FaceScanner({ onScanComplete }: FaceScannerProps) {
             modelReady={modelReady}
             modelError={modelError}
             onRetry={() => void start()}
+            onUpload={pickPhoto}
           />
         )}
       </div>
@@ -431,7 +513,15 @@ function CircularGuide({ active, scanning }: { active: boolean; scanning: boolea
   );
 }
 
-function LaunchOverlay({ onStart }: { onStart: () => void }) {
+function LaunchOverlay({
+  onStart,
+  onUpload,
+  uploadError,
+}: {
+  onStart: () => void;
+  onUpload: () => void;
+  uploadError: boolean;
+}) {
   return (
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-ink/80 p-6 text-center backdrop-blur-sm">
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10">
@@ -447,10 +537,23 @@ function LaunchOverlay({ onStart }: { onStart: () => void }) {
       <Button size="lg" onClick={onStart} className="w-full max-w-[15rem]">
         <ScanFace className="h-5 w-5" /> Start skin analysis
       </Button>
-      <p className="flex items-center gap-1.5 text-xs text-white/60">
-        <ShieldCheck className="h-3.5 w-3.5 text-sage" />
-        Nothing is uploaded — it stays on your device.
-      </p>
+      <button
+        type="button"
+        onClick={onUpload}
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-white/75 underline-offset-2 hover:text-white hover:underline"
+      >
+        <ImageUp className="h-3.5 w-3.5" /> or upload a photo
+      </button>
+      {uploadError ? (
+        <p className="text-xs text-accent-soft">
+          Couldn&apos;t find a face in that photo — try another.
+        </p>
+      ) : (
+        <p className="flex items-center gap-1.5 text-xs text-white/60">
+          <ShieldCheck className="h-3.5 w-3.5 text-sage" />
+          Nothing is uploaded — it stays on your device.
+        </p>
+      )}
     </div>
   );
 }
@@ -460,11 +563,13 @@ function ScannerStateOverlay({
   modelReady,
   modelError,
   onRetry,
+  onUpload,
 }: {
   status: ReturnType<typeof useCamera>["status"];
   modelReady: boolean;
   modelError: boolean;
   onRetry: () => void;
+  onUpload: () => void;
 }) {
   const showLoader =
     (status === "idle" ||
@@ -500,9 +605,12 @@ function ScannerStateOverlay({
       <Overlay>
         <CircleAlert className="h-7 w-7 text-accent-soft" />
         <p className="max-w-[16rem] text-center text-sm text-white/85">
-          Camera access was blocked. Enable it in your browser, then retry.
+          Camera access was blocked. Enable it in your browser, or use a photo.
         </p>
-        <RetryButton onRetry={onRetry} />
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <RetryButton onRetry={onRetry} />
+          <UploadButton onUpload={onUpload} />
+        </div>
       </Overlay>
     );
   }
@@ -511,8 +619,10 @@ function ScannerStateOverlay({
       <Overlay>
         <CircleAlert className="h-7 w-7 text-accent-soft" />
         <p className="max-w-[16rem] text-center text-sm text-white/85">
-          This browser doesn&apos;t support camera capture.
+          This browser doesn&apos;t support camera capture — upload a photo
+          instead.
         </p>
+        <UploadButton onUpload={onUpload} />
       </Overlay>
     );
   }
@@ -521,9 +631,12 @@ function ScannerStateOverlay({
       <Overlay>
         <CircleAlert className="h-7 w-7 text-accent-soft" />
         <p className="max-w-[16rem] text-center text-sm text-white/85">
-          We couldn&apos;t reach a camera. Make sure one is connected, then retry.
+          We couldn&apos;t reach a camera. Connect one and retry, or use a photo.
         </p>
-        <RetryButton onRetry={onRetry} />
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <RetryButton onRetry={onRetry} />
+          <UploadButton onUpload={onUpload} />
+        </div>
       </Overlay>
     );
   }
@@ -543,6 +656,15 @@ function RetryButton({ onRetry }: { onRetry: () => void }) {
     <Button variant="secondary" size="sm" onClick={onRetry}>
       <RotateCcw className="h-4 w-4" />
       Retry
+    </Button>
+  );
+}
+
+function UploadButton({ onUpload }: { onUpload: () => void }) {
+  return (
+    <Button variant="secondary" size="sm" onClick={onUpload}>
+      <ImageUp className="h-4 w-4" />
+      Upload a photo
     </Button>
   );
 }
