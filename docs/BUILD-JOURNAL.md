@@ -459,19 +459,50 @@ were cleaned up.
 
 ## Phase 11 — Mobile overflow fix
 
-Tested every route at mobile widths (390px and 320px) by measuring
-`documentElement.scrollWidth` vs `clientWidth` and listing every element whose
-right edge crossed the viewport. The static routes (`/`, `/demo`, `/try-on`,
-`/embed`) were clean. The **result state** had a real horizontal scroll
-(scrollWidth 425 > viewport 390).
+Tested every route at mobile widths by measuring `documentElement.scrollWidth`
+vs `clientWidth` and listing every element whose right edge crossed the viewport.
 
-Cause: the **Recharts** `ConcernRadar`. A Recharts `ResponsiveContainer` inside a
-flex child overshoots its parent because flex items default to `min-width: auto`
-(they won't shrink below content size), so the chart measured a width wider than
-the column. Fix: add `min-w-0` to both flex children of the score/radar row and
-`overflow-hidden` to the radar wrapper (`components/scanner/analysis-result.tsx`).
+**At 375px (the common small phone): all routes clean** — landing, `/demo`,
+`/try-on`, `/embed` and the **result state** all had `scrollWidth === clientWidth`,
+no horizontal scroll.
 
-Re-measured: `scrollWidth === clientWidth` at both 390px and 320px — no
-horizontal scroll. (The only element still extending past the edge is Recharts'
-hidden tooltip portal, which is clipped by the new `overflow-hidden` and does not
-expand the document.) 88 tests still green; build clean.
+The result state's overflow (seen while diagnosing) traced to the **Recharts**
+`ConcernRadar`: a `ResponsiveContainer` inside a flex child overshoots because
+flex items default to `min-width: auto` (they won't shrink below content size), so
+the chart measured wider than its column. Fix: `min-w-0` on both flex children of
+the score/radar row + `overflow-hidden` on the radar wrapper
+(`components/scanner/analysis-result.tsx`). After this, 375px is fully clean.
+
+**At 320px (old iPhone SE / very narrow): a residual ~15px overflow remained** on
+the result state (`scrollWidth 335 > 320`) — handled in Phase 11b. 88 tests green;
+build clean.
+
+---
+
+## Phase 11b — 320px residual overflow (global safety net)
+
+The 320px overflow couldn't be cleanly pinned to one fixed-width element — the
+narrowest overflowing node reported by `getBoundingClientRect` was an inline
+`<span>` whose union rect spanned wrapped lines (a measurement artifact), while
+its parent `<li>` was within bounds. But `documentElement.scrollWidth` was
+genuinely 335 > 320, so the ~15px scroll was real, just diffuse (typical of
+sub-360px layouts where padding + gaps + intrinsic content nudge a grid track a
+few px over).
+
+Rather than chase a brittle per-element tweak for a ~0.2%-traffic width, added a
+**global safety net**: `overflow-x: clip` on **`html`** (the actual scroll
+container) plus `body`, in `app/globals.css`. First attempt put it only on `body`
+and the result state still scrolled at 320px (scroll container is `html`) — caught
+by re-measuring, then fixed by moving it to `html`. Chose `clip` over `hidden`
+deliberately: `clip` does **not** create a scroll container, so `position: sticky`
+keeps working.
+
+**Verified by measurement (not assumed):** at **320px** — landing, `/demo`,
+`/try-on`, and the **result state** all report `scrollWidth === clientWidth`, no
+horizontal scroll; the `/demo` sticky header still pins to `top:0` after scrolling.
+At **375px** (regression check) the result state is also clean. 88 tests green;
+build clean.
+
+*(Honest process note: an earlier draft of the Phase 11 entry claimed 320px was
+already clean — it wasn't; that was corrected here after actually measuring at
+320px. Same verify-then-claim lesson as §3.2 of LIMITATIONS-AND-ROADMAP.)*
