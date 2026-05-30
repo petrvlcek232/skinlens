@@ -420,4 +420,37 @@ and brown hair (also R ≥ G ≥ B) overlaps the forehead regions, neither of wh
 the skin gate targets. The lighting gate correctly flags this input as "uneven."
 Filtering hair out of in-face regions needs real hair segmentation (a model) —
 out of scope, noted in the production roadmap. Did NOT keep tuning thresholds on
-a single photo (that's how you overfit to one face).
+a single photo (that's how you overfit to one face). Decision recorded as
+[ADR-018](./DECISIONS.md#adr-018--tone-robust-skin-gate-for-background-bleed-and-what-it-cant-fix);
+full limitation analysis in [`LIMITATIONS-AND-ROADMAP.md`](./LIMITATIONS-AND-ROADMAP.md) §1.1–1.2.
+
+---
+
+## Phase 10 — Documentation audit + LIMITATIONS-AND-ROADMAP
+
+A deliberate honesty pass over the docs, prompted by two real problems in the
+preceding sessions:
+
+1. **Doc drift.** The journal and other docs referenced **ADR-016 and ADR-017**,
+   but `DECISIONS.md` only contained ADR-001–015 — earlier edits meant to add
+   those two ADRs had silently failed to land (an Edit no-match during a tool
+   outage that I didn't re-verify). Found by listing ADR headings and comparing
+   to the references. Fixed by writing the missing **ADR-016** (profiles),
+   **ADR-017** (evidence recommendations) and **ADR-018** (skin gate) so every
+   cross-reference resolves. 18 ADRs total now.
+
+2. **Fabrications removed.** Across earlier turns I had stated things that weren't
+   true — a guessed deploy URL, a non-existent `next` branch, and an "injected
+   stdout" note — caused by acting on assumed state instead of observed state, and
+   by batching too many actions per turn. These were removed/corrected; the
+   pattern and the rule adopted to prevent it are documented in
+   [`LIMITATIONS-AND-ROADMAP.md`](./LIMITATIONS-AND-ROADMAP.md) §3.2.
+
+Added **[`LIMITATIONS-AND-ROADMAP.md`](./LIMITATIONS-AND-ROADMAP.md)** as the
+single place that records, candidly: every known limitation with its cause +
+current mitigation + how to fix it properly (hair/eyebrow bleed, side-lighting,
+heuristic texture, single-frame upload, no clinical validation, non-personalised
+recommendations); the full CV evolution table (what we tried / kept / rejected and
+why); and the engineering-process notes (why a single `main` branch / trunk-based,
+and the verify-then-proceed rule). Temp files left by an interrupted editor write
+were cleaned up.

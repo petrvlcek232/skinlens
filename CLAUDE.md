@@ -7,7 +7,9 @@
 > The *why* behind every significant choice lives in
 > [`docs/DECISIONS.md`](./docs/DECISIONS.md); the build narrative + gotchas live
 > in [`docs/BUILD-JOURNAL.md`](./docs/BUILD-JOURNAL.md); honest accuracy
-> positioning + test coverage in [`docs/VALIDATION.md`](./docs/VALIDATION.md).
+> positioning + test coverage in [`docs/VALIDATION.md`](./docs/VALIDATION.md);
+> known limits, the CV evolution, and process notes (incl. branching) in
+> [`docs/LIMITATIONS-AND-ROADMAP.md`](./docs/LIMITATIONS-AND-ROADMAP.md).
 > Keep them current.
 
 ## What this is
