@@ -506,3 +506,22 @@ build clean.
 *(Honest process note: an earlier draft of the Phase 11 entry claimed 320px was
 already clean — it wasn't; that was corrected here after actually measuring at
 320px. Same verify-then-claim lesson as §3.2 of LIMITATIONS-AND-ROADMAP.)*
+
+---
+
+## Phase 11c — Profile dropdown overflow
+
+User report: tapping the profile switcher ("Me" / "Add person") made the page
+widen. Cause: the dropdown was `absolute left-0 w-52` (208px), but the switcher
+sits on the **right** of the header (`justify-between`), so the menu opened
+rightward and its right edge landed well past the viewport (~432px at a 320px
+width) — clipped/scrolled.
+
+Fix: anchor the menu to the **right** edge (`right-0`, opens leftward) and cap it
+with `max-w-[calc(100vw-2rem)]` for very narrow screens
+(`components/scanner/profile-switcher.tsx`).
+
+**Verified by measurement** at 320px with the dropdown open: menu rect L=88,
+R=296, W=208 — fully inside the 320 viewport (`inside=true`), `scrollWidth===320`,
+no horizontal scroll. Screenshot confirms the menu opens leftward and on-screen.
+88 tests green.

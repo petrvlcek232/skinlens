@@ -71,7 +71,10 @@ export function ProfileSwitcher({
               setAdding(false);
             }}
           />
-          <div className="absolute left-0 z-40 mt-2 w-52 overflow-hidden rounded-xl border border-line bg-paper-raised p-1 shadow-lg">
+          {/* Anchored to the right edge — the switcher sits on the right of the
+              header, so opening leftward keeps the menu inside the viewport on
+              mobile. max-width caps it on very narrow screens. */}
+          <div className="absolute right-0 z-40 mt-2 w-52 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-line bg-paper-raised p-1 shadow-lg">
             <p className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-soft">
               Who&apos;s scanning?
             </p>
