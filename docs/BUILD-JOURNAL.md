@@ -395,3 +395,29 @@ it by checking the catalog directly against the recommend tests; fixed by adding
 neutral "Daily Moisturizing Lotion" plus a `catalog.test.ts` integrity check that
 asserts a neutral core product exists. Also reconciled a renamed cleanser in the
 recommend test. 84 tests green.
+
+---
+
+## Phase 9.5 — Background-bleed skin gate (from an E2E finding)
+
+Ran a real E2E: uploaded a synthetic (StyleGAN, non-real) face via the photo
+path and watched the live pipeline. It worked end-to-end (upload → IMAGE-mode
+detection → mesh heatmap → score → evidence-backed routine, no console errors),
+and surfaced a real accuracy issue: green background bled into the edge sampling
+regions and dragged "tone evenness" down.
+
+Fix: a **tone-robust skin gate** in `robustRegionColor` (`lib/vision/scan.ts`).
+Human skin is R ≥ G ≥ B across light AND dark tones, so we drop pixels where red
+isn't the dominant channel (within a small tolerance) before the median — which
+removes green foliage / blue sky bleed without any brightness threshold that
+would penalize darker skin. Falls back to all pixels if the gate over-thins.
++4 tests (88 total): rejects green and blue bleed, keeps dark skin, falls back.
+
+**Honest limit (recorded, not hidden):** on the test photo, re-running after the
+fix left tone evenness unchanged (45) — because that score there is mostly
+*legitimate*: the forehead is brightly lit while the cheeks are side-shadowed,
+and brown hair (also R ≥ G ≥ B) overlaps the forehead regions, neither of which
+the skin gate targets. The lighting gate correctly flags this input as "uneven."
+Filtering hair out of in-face regions needs real hair segmentation (a model) —
+out of scope, noted in the production roadmap. Did NOT keep tuning thresholds on
+a single photo (that's how you overfit to one face).

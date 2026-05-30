@@ -39,6 +39,30 @@ describe("robustRegionColor", () => {
     const color = robustRegionColor(pixels)!;
     expect(color).toEqual({ r: 150, g: 110, b: 95 });
   });
+
+  it("rejects green background bleed (G > R) and keeps the skin median", () => {
+    // 200 skin pixels + 80 grass-green background pixels leaking into the region.
+    const pixels = [...fill([150, 110, 95], 200), ...fill([60, 150, 70], 80)];
+    const color = robustRegionColor(pixels)!;
+    expect(color).toEqual({ r: 150, g: 110, b: 95 });
+  });
+
+  it("rejects blue background bleed (B > R)", () => {
+    const pixels = [...fill([150, 110, 95], 200), ...fill([60, 90, 200], 80)];
+    const color = robustRegionColor(pixels)!;
+    expect(color).toEqual({ r: 150, g: 110, b: 95 });
+  });
+
+  it("keeps dark skin (tone-robust skin gate, no brightness floor)", () => {
+    // Dark but valid skin (R ≥ G ≥ B) must survive the skin gate untouched.
+    expect(robustRegionColor(fill([74, 52, 42], 200))).toEqual({ r: 74, g: 52, b: 42 });
+  });
+
+  it("falls back to all pixels if the skin gate leaves too few", () => {
+    // Mostly green (unusual), so the gate would over-thin — don't return null.
+    const pixels = [...fill([60, 150, 70], 200), ...fill([150, 110, 95], 5)];
+    expect(robustRegionColor(pixels)).not.toBeNull();
+  });
 });
 
 describe("scan accumulation", () => {

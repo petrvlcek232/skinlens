@@ -33,21 +33,41 @@ function medianRGB(colors: RGB[]): RGB {
 }
 
 /**
- * Robust representative color for one region's pixels: drop pixels whose
- * luminance is far (> 2.5·MAD) from the region median, then take the
- * component-wise median of what remains. Returns null if too few skin pixels.
+ * Skin-plausibility test, tone-robust. Human skin reflects more red than green
+ * or blue (R ≥ G ≥ B holds across light AND dark skin), so we keep pixels where
+ * red is at least the dominant channel within a small tolerance. This rejects
+ * background bleed — green foliage (G ≫ R), blue sky/clothing (B ≫ R) — that
+ * leaks into edge regions, without using any absolute brightness threshold that
+ * would penalize darker skin. Neutral greys pass (within tolerance) so we never
+ * over-reject. (E2E surfaced green background degrading the tone metric.)
+ */
+const SKIN_TOL = 6;
+function isSkinLike({ r, g, b }: RGB): boolean {
+  return r >= g - SKIN_TOL && r >= b - SKIN_TOL;
+}
+
+/**
+ * Robust representative color for one region's pixels: (1) drop non-skin pixels
+ * (background bleed) via a tone-robust skin test, (2) drop pixels whose luminance
+ * is far (> 2.5·MAD) from the region median, then take the component-wise median
+ * of what remains. Returns null if too few skin pixels to start.
  */
 export function robustRegionColor(pixels: RGB[]): RGB | null {
   if (pixels.length < MIN_REGION_PIXELS) return null;
 
-  const lums = pixels.map(luminanceL);
+  // 1. Skin gate — remove obvious background; fall back if it leaves too few.
+  const skin = pixels.filter(isSkinLike);
+  const base = skin.length >= MIN_REGION_PIXELS ? skin : pixels;
+
+  // 2. Luminance-outlier rejection on the skin set.
+  const lums = base.map(luminanceL);
   const medL = median(lums);
   const mad = median(lums.map((l) => Math.abs(l - medL))) || 1;
-
-  const kept = pixels.filter(
+  const kept = base.filter(
     (_, i) => Math.abs(lums[i] - medL) <= OUTLIER_MAD_FACTOR * mad,
   );
-  const usable = kept.length >= MIN_REGION_PIXELS ? kept : pixels;
+
+  const usable = kept.length >= MIN_REGION_PIXELS ? kept : base;
   return medianRGB(usable);
 }
 
