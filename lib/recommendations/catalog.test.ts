@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { CATALOG, productById } from "./catalog";
 import type { ConcernId } from "@/lib/analysis/analyze";
 
-const CONCERNS: ConcernId[] = ["redness", "evenness", "underEye", "texture"];
+const CONCERNS: ConcernId[] = ["redness", "evenness", "underEye", "texture", "blemishes"];
 const CATEGORIES = ["cleanser", "serum", "exfoliant", "eye", "moisturizer", "spf"];
 
 describe("product catalog integrity", () => {
