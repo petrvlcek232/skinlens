@@ -81,6 +81,14 @@ export function AnalysisResult({
               vs last scan <Delta value={overallDelta} />
             </span>
           )}
+          {analysis.skinTone && (
+            <span
+              className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-paper px-2.5 py-1 text-[11px] font-medium text-ink-soft ring-1 ring-line"
+              title={`Individual Typology Angle ${analysis.skinTone.ita}° → Monk Skin Tone scale (approximate)`}
+            >
+              Skin tone: {analysis.skinTone.label}
+            </span>
+          )}
         </div>
         {/* min-w-0 lets this flex child shrink below the chart's intrinsic size;
             overflow-hidden contains any Recharts ResponsiveContainer overshoot. */}
