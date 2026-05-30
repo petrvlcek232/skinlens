@@ -9,8 +9,9 @@ Built as a portfolio demo for a beauty computer-vision platform (Revieve-style),
 to the standard a brand could embed — not a clinical instrument (see
 [honest positioning](#honesty)).
 
-> **Live demo:** _add your Vercel URL here_ · **Bonus AR:** `/try-on` ·
-> **Embedded in a fake storefront:** `/demo`
+> **Live demo:** https://skin-advisor-demo-xi.vercel.app ·
+> **Bonus AR:** [`/try-on`](https://skin-advisor-demo-xi.vercel.app/try-on) ·
+> **Embedded in a fake storefront:** [`/demo`](https://skin-advisor-demo-xi.vercel.app/demo)
 
 <!-- Add a short screen recording of the live mesh heatmap scan here:
 ![SkinLens scan](docs/media/demo.gif) -->
