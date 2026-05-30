@@ -23,7 +23,7 @@ function analysis(scores: Partial<Record<ConcernId, number>>): SkinAnalysis {
   const overall = Math.round(
     concerns.reduce((s, c) => s + c.score, 0) / concerns.length,
   );
-  return { overallScore: overall, concerns };
+  return { overallScore: overall, concerns, skinTone: null };
 }
 
 function slots(routine: ReturnType<typeof buildRoutine>) {

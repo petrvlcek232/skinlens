@@ -17,6 +17,23 @@ export function toLab(stats: RegionSampleStats[]): LabByRegion {
   return out;
 }
 
+/**
+ * Mean "baseline skin" LAB from the least-confounded regions (cheeks + forehead
+ * centre) — used for the ITA skin-tone estimate. Excludes under-eye (shadow),
+ * nose T-zone (glare) and lip/brow-adjacent zones. Returns null if none present.
+ */
+export function baselineSkinLab(lab: LabByRegion): LAB | null {
+  const ids: RegionId[] = ["leftCheek", "rightCheek", "forehead"];
+  const present = ids.map((id) => lab[id]).filter((v): v is LAB => !!v);
+  if (present.length === 0) return null;
+  const n = present.length;
+  return {
+    l: present.reduce((s, v) => s + v.l, 0) / n,
+    a: present.reduce((s, v) => s + v.a, 0) / n,
+    b: present.reduce((s, v) => s + v.b, 0) / n,
+  };
+}
+
 function mean(ns: number[]): number {
   return ns.length ? ns.reduce((a, b) => a + b, 0) / ns.length : 0;
 }

@@ -2,12 +2,14 @@ import { deriveRegions } from "@/lib/vision/regions";
 import type { ScanResult } from "@/lib/vision/types";
 import {
   toLab,
+  baselineSkinLab,
   rednessDelta,
   underEyeDelta,
   toneSpread,
   scoreFromDelta,
 } from "./metrics";
 import { laplacianVariance, horizontalLineEnergy } from "./texture";
+import { classifySkinTone, type SkinTone } from "@/lib/vision/skin-tone";
 
 export type ConcernId = "redness" | "evenness" | "underEye" | "texture";
 export type Severity = "good" | "moderate" | "attention";
@@ -25,6 +27,8 @@ export interface SkinAnalysis {
   /** 0–100 weighted composite (higher = healthier). */
   overallScore: number;
   concerns: ConcernResult[];
+  /** Approximate skin tone (ITA → Monk), null if no baseline skin sampled. */
+  skinTone: SkinTone | null;
 }
 
 /** Concern weights for the composite. Documented in docs/DECISIONS.md. */
@@ -158,5 +162,8 @@ export function analyzeScan(result: ScanResult): SkinAnalysis {
     concerns.reduce((sum, c) => sum + c.score * WEIGHTS[c.id], 0),
   );
 
-  return { overallScore, concerns };
+  const baseline = baselineSkinLab(lab);
+  const skinTone = baseline ? classifySkinTone(baseline) : null;
+
+  return { overallScore, concerns, skinTone };
 }
