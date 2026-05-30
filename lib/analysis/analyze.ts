@@ -10,6 +10,7 @@ import {
 } from "./metrics";
 import { laplacianVariance, horizontalLineEnergy } from "./texture";
 import { classifySkinTone, type SkinTone } from "@/lib/vision/skin-tone";
+import { rednessThresholdFor } from "./calibration";
 
 export type ConcernId = "redness" | "evenness" | "underEye" | "texture";
 export type Severity = "good" | "moderate" | "attention";
@@ -81,8 +82,15 @@ function textureDetail(score: number): string {
 export function analyzeScan(result: ScanResult): SkinAnalysis {
   const lab = toLab(result.regionStats);
 
+  // Skin tone first — redness thresholds are tone-relative (data-driven).
+  const baseline = baselineSkinLab(lab);
+  const skinTone = baseline ? classifySkinTone(baseline) : null;
+
+  // Redness uses calibrated, tone-aware thresholds from the labeled-dataset
+  // calibration (lib/analysis/calibration.json) instead of hand-picked numbers.
   const redDelta = rednessDelta(lab);
-  const redness = scoreFromDelta(redDelta, 2, 14);
+  const redThresh = rednessThresholdFor(skinTone?.tier ?? "light");
+  const redness = scoreFromDelta(redDelta, redThresh.goodAt, redThresh.badAt);
 
   const ueDelta = underEyeDelta(lab);
   const underEye = scoreFromDelta(ueDelta, 2, 16);

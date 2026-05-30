@@ -525,3 +525,35 @@ with `max-w-[calc(100vw-2rem)]` for very narrow screens
 R=296, W=208 — fully inside the 320 viewport (`inside=true`), `scrollWidth===320`,
 no horizontal scroll. Screenshot confirms the menu opens leftward and on-screen.
 88 tests green.
+
+---
+
+## Phase 12 — Data-driven tone-relative calibration
+
+The biggest honesty gap left: redness thresholds were hand-picked. Closed it
+properly (ADR-019). Researched datasets via two sub-agents — confirmed no single
+"faces + tones + cosmetic-condition labels" set exists freely; combined the
+realistic option (Roboflow "Face Skin Problems", 1,008 faces, CC BY 4.0,
+multi-label cosmetic concerns, diverse tones).
+
+Built/finished the offline harness `scripts/calibrate.ts` (SQLite via
+better-sqlite3, image decode via sharp). Key correctness fix: the harness now
+measures the **same signal as runtime** — `a*(cheeks) − a*(forehead)` delta, not
+absolute a* — by sampling a forehead band + a cheeks band with the same skin gate
++ robust median. So the derived thresholds transfer 1:1 into `analyze.ts` (no
+absolute-vs-delta mismatch, which I caught and fixed before wiring).
+
+Ran on all 1,008 faces. Tone tiers came out Monk 2/5/8 (light/medium/dark) — real
+diversity. Calibrated redness bands per tier; dark-skin elevated cutoff is higher
+(11 vs ~7), the concrete proof that an absolute threshold would over-flag darker
+skin. Per-condition deltas point the right way (acne/eyebags +, wrinkles/dry −).
+
+Wired `lib/analysis/calibration.json` → `calibration.ts` (typed loader) →
+`analyze.ts` (tone-aware threshold selection). Also fixed a latent bug found on
+the way: the `SkinAnalysis.skinTone` field existed but `analyzeScan` never
+populated it — now it does. +11 tests (111 total): calibration integrity + the
+existing redness/inclusivity tests still green against the new numbers.
+
+Dataset moved into `datasets/` (raw images gitignored; README + attribution +
+derived JSON committed). Full method, results table, and honest limits in
+[`CALIBRATION.md`](./CALIBRATION.md).

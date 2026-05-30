@@ -48,4 +48,8 @@ next-env.d.ts
 
 # calibration harness artifacts (dev-time only)
 calibration.db
-/lib/analysis/calibration.json
+
+# raw face dataset — NOT committed (privacy + bloat); see datasets/README.md to fetch
+/datasets/face-skin-problems/train/
+/datasets/face-skin-problems/valid/
+/datasets/face-skin-problems/test/

@@ -1,0 +1,36 @@
+{
+  "generatedFrom": "train",
+  "sampleCount": 1008,
+  "metric": "rednessDelta = a*(cheeks) - a*(forehead); same signal as runtime analyze.ts",
+  "skinTone": {
+    "light": {
+      "n": 463,
+      "itaMedian": 56,
+      "monkMedian": 2
+    },
+    "medium": {
+      "n": 360,
+      "itaMedian": 27.9,
+      "monkMedian": 5
+    },
+    "dark": {
+      "n": 185,
+      "itaMedian": -14.2,
+      "monkMedian": 8
+    }
+  },
+  "rednessThresholds": {
+    "light": {
+      "goodAt": 1.3,
+      "badAt": 7.2
+    },
+    "medium": {
+      "goodAt": 1.3,
+      "badAt": 7.1
+    },
+    "dark": {
+      "goodAt": 0.7,
+      "badAt": 11
+    }
+  }
+}

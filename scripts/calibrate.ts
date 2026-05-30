@@ -20,7 +20,7 @@
  * NOTHING here runs in the shipped app; it is dev-time tooling only.
  */
 import { readdirSync, existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join, extname, dirname } from "node:path";
+import { join, extname, dirname, basename } from "node:path";
 import sharp from "sharp";
 import Database from "better-sqlite3";
 import { rgbToLab } from "../lib/vision/color";
@@ -91,53 +91,108 @@ function medianRGB(px: RGB[]): RGB {
   };
 }
 
-/**
- * Sample a central face ellipse, drop non-skin (skin gate) + luminance outliers,
- * return the representative skin RGB. Null if too few skin pixels (not a face).
- */
-async function sampleFaceSkin(path: string): Promise<RGB | null> {
-  const img = sharp(path).rotate();
-  const { data, info } = await img.raw().toBuffer({ resolveWithObject: true });
-  const { width: W, height: H, channels } = info;
-  if (W < 64 || H < 64) return null;
-
-  const cx = W / 2;
-  const cy = H * 0.45; // face sits slightly above centre in a headshot
-  const rx = W * 0.22;
-  const ry = H * 0.28;
-
-  const px: RGB[] = [];
-  for (let y = 0; y < H; y += 2) {
-    for (let x = 0; x < W; x += 2) {
-      const dx = (x - cx) / rx;
-      const dy = (y - cy) / ry;
-      if (dx * dx + dy * dy > 1) continue;
-      const idx = (y * W + x) * channels;
-      px.push({ r: data[idx], g: data[idx + 1], b: data[idx + 2] });
-    }
-  }
-  if (px.length < 40) return null;
-
+/** Robust representative RGB for a band of pixels: skin gate + luminance-MAD. */
+function robustColor(px: RGB[], minN = 25): RGB | null {
+  if (px.length < minN) return null;
   const skin = px.filter(isSkinLike);
-  const base = skin.length >= 40 ? skin : px;
-
-  // Luminance-MAD outlier rejection (drops hair/shadow/glare in the ellipse).
+  const base = skin.length >= minN ? skin : px;
   const lums = base.map(luminance);
   const medL = median(lums);
   const mad = median(lums.map((l) => Math.abs(l - medL))) || 1;
   const kept = base.filter((_, i) => Math.abs(lums[i] - medL) <= 2.5 * mad);
-  const usable = kept.length >= 40 ? kept : base;
-
-  return medianRGB(usable);
+  return medianRGB(kept.length >= minN ? kept : base);
 }
 
+/** Collect pixels inside a normalized rectangle [x0,x1]×[y0,y1] of the image. */
+function band(
+  data: Buffer | Uint8Array,
+  W: number,
+  H: number,
+  ch: number,
+  x0: number,
+  x1: number,
+  y0: number,
+  y1: number,
+): RGB[] {
+  const px: RGB[] = [];
+  for (let y = Math.floor(y0 * H); y < y1 * H; y += 2) {
+    for (let x = Math.floor(x0 * W); x < x1 * W; x += 2) {
+      const idx = (y * W + x) * ch;
+      px.push({ r: data[idx], g: data[idx + 1], b: data[idx + 2] });
+    }
+  }
+  return px;
+}
+
+export interface FaceSample {
+  /** Overall representative skin RGB (whole central face). */
+  skin: RGB;
+  /** Cheek band RGB, or null if not enough skin. */
+  cheeks: RGB | null;
+  /** Forehead band RGB, or null if not enough skin. */
+  forehead: RGB;
+}
+
+/**
+ * Sample the SAME regions the runtime engine uses (approximated without
+ * MediaPipe landmarks, since those are browser-only): an overall central-face
+ * skin colour, plus a forehead band and a cheeks band so we can compute the
+ * runtime's redness signal — `a*(cheeks) − a*(forehead)` — not just absolute a*.
+ * These dataset crops are roughly face-filling and centred, so fixed normalized
+ * bands are a reasonable proxy. Returns null if no usable skin (not a face).
+ */
+async function sampleFace(path: string): Promise<FaceSample | null> {
+  const { data, info } = await sharp(path).rotate().raw().toBuffer({ resolveWithObject: true });
+  const { width: W, height: H, channels: ch } = info;
+  if (W < 64 || H < 64) return null;
+
+  // Overall central ellipse (for tone/ITA) — reuse a central rectangle band.
+  const overall = robustColor(band(data, W, H, ch, 0.3, 0.7, 0.28, 0.66), 40);
+  if (!overall) return null;
+
+  // Forehead: upper-central band. Cheeks: two lateral mid bands.
+  const forehead = robustColor(band(data, W, H, ch, 0.36, 0.64, 0.16, 0.30));
+  const cheekL = band(data, W, H, ch, 0.18, 0.36, 0.50, 0.70);
+  const cheekR = band(data, W, H, ch, 0.64, 0.82, 0.50, 0.70);
+  const cheeks = robustColor([...cheekL, ...cheekR]);
+
+  return { skin: overall, cheeks, forehead: forehead ?? overall };
+}
+
+/**
+ * Loads per-image labels. Supports TWO formats, auto-detected from the header:
+ *  - simple:   `file,ethnicity,condition`
+ *  - Roboflow: `filename, <classA>, <classB>, …` with 0/1 multi-label columns
+ *    (e.g. acne, redness, wrinkles, normal skin). We collapse the positive
+ *    columns into one primary `condition`: the first positive non-"normal"
+ *    class, else "normal".
+ */
 function loadLabels(csv?: string): Map<string, { ethnicity: string; condition: string }> {
   const map = new Map<string, { ethnicity: string; condition: string }>();
   if (!csv || !existsSync(csv)) return map;
   const lines = readFileSync(csv, "utf8").trim().split(/\r?\n/);
-  for (const line of lines.slice(1)) {
-    const [file, ethnicity = "", condition = ""] = line.split(",").map((s) => s.trim());
-    if (file) map.set(file, { ethnicity, condition });
+  if (lines.length < 2) return map;
+
+  const header = lines[0].split(",").map((s) => s.trim().toLowerCase());
+  const isRoboflow =
+    header[0] === "filename" && !header.includes("condition");
+
+  if (isRoboflow) {
+    const classCols = header.slice(1); // condition class names, one per column
+    for (const line of lines.slice(1)) {
+      const cols = line.split(",").map((s) => s.trim());
+      const file = cols[0];
+      if (!file) continue;
+      const positives = classCols.filter((_, i) => cols[i + 1] === "1");
+      const primary =
+        positives.find((c) => !c.includes("normal")) ?? positives[0] ?? "normal";
+      map.set(file, { ethnicity: "", condition: primary });
+    }
+  } else {
+    for (const line of lines.slice(1)) {
+      const [file, ethnicity = "", condition = ""] = line.split(",").map((s) => s.trim());
+      if (file) map.set(file, { ethnicity, condition });
+    }
   }
   return map;
 }
@@ -170,40 +225,43 @@ async function main() {
   let ok = 0;
   let skipped = 0;
   for (const path of images) {
-    const rgb = await sampleFaceSkin(path).catch(() => null);
+    const sample = await sampleFace(path).catch(() => null);
     const name = path.split("/").pop() ?? path;
-    if (!rgb) {
+    if (!sample) {
       skipped++;
       continue;
     }
-    const lab = rgbToLab(rgb);
+    const lab = rgbToLab(sample.skin);
     const ita = computeITA(lab);
     const label = labels.get(name) ?? { ethnicity: "", condition: "" };
-    // Redness proxy: CIELAB a* relative to a neutral skin a* of ~13 (tone-robust-ish).
-    const redness = lab.a;
+    // RUNTIME-MATCHING redness signal: a*(cheeks) − a*(forehead). Same quantity
+    // analyze.ts computes (rednessDelta), so the thresholds transfer 1:1.
+    const cheekLab = sample.cheeks ? rgbToLab(sample.cheeks) : null;
+    const foreLab = rgbToLab(sample.forehead);
+    const rednessDelta = cheekLab ? cheekLab.a - foreLab.a : 0;
     insert.run({
       file: name,
       ethnicity: label.ethnicity,
       condition: label.condition,
-      r: rgb.r, g: rgb.g, b: rgb.b,
+      r: sample.skin.r, g: sample.skin.g, b: sample.skin.b,
       l: lab.l, a: lab.a, bb: lab.b,
-      ita, monk: itaToMonk(ita), tier: itaToTier(ita), redness,
+      ita, monk: itaToMonk(ita), tier: itaToTier(ita), redness: rednessDelta,
     });
     ok++;
   }
 
   console.log(`Measured ${ok}, skipped ${skipped} (no face / too few skin pixels)\n`);
 
-  // Per-tier summary + redness percentiles (the data-driven thresholds).
   const tiers = ["light", "medium", "dark"] as const;
   const calibration: Record<string, unknown> = {
-    generatedFrom: args.imagesDir,
+    generatedFrom: basename(args.imagesDir),
     sampleCount: ok,
+    metric: "rednessDelta = a*(cheeks) - a*(forehead); same signal as runtime analyze.ts",
     skinTone: {},
     rednessThresholds: {},
   };
 
-  console.log("Tier    n   ITA(med)  Monk(med)  a*(med)  a*p33  a*p66");
+  console.log("Tier      n   ITA(med)  Monk  redΔ(med)  good(p50)  bad(p85)");
   for (const tier of tiers) {
     const rows = db.prepare(`SELECT ita, monk, redness FROM samples WHERE tier = ?`).all(tier) as {
       ita: number; monk: number; redness: number;
@@ -212,31 +270,31 @@ async function main() {
     const itas = rows.map((r) => r.ita).sort((a, b) => a - b);
     const reds = rows.map((r) => r.redness).sort((a, b) => a - b);
     const monks = rows.map((r) => r.monk).sort((a, b) => a - b);
-    const p33 = percentile(reds, 33);
-    const p66 = percentile(reds, 66);
+    // "good" = median redness delta of this population (typical, not flagged);
+    // "bad" = 85th percentile (genuinely elevated for this tone).
+    const goodAt = Math.round(percentile(reds, 50) * 10) / 10;
+    const badAt = Math.round(percentile(reds, 85) * 10) / 10;
     (calibration.skinTone as Record<string, unknown>)[tier] = {
       n: rows.length,
       itaMedian: Math.round(median(itas) * 10) / 10,
       monkMedian: median(monks),
     };
-    (calibration.rednessThresholds as Record<string, unknown>)[tier] = {
-      goodAt: Math.round(p33 * 10) / 10,
-      badAt: Math.round(p66 * 10) / 10,
-    };
+    (calibration.rednessThresholds as Record<string, unknown>)[tier] = { goodAt, badAt };
     console.log(
-      `${tier.padEnd(7)} ${String(rows.length).padStart(2)}  ${median(itas).toFixed(1).padStart(7)}  ${String(median(monks)).padStart(7)}   ${median(reds).toFixed(1).padStart(6)}  ${p33.toFixed(1).padStart(5)}  ${p66.toFixed(1).padStart(5)}`,
+      `${tier.padEnd(8)} ${String(rows.length).padStart(3)}  ${median(itas).toFixed(1).padStart(7)}  ${String(median(monks)).padStart(4)}  ${median(reds).toFixed(1).padStart(8)}  ${goodAt.toFixed(1).padStart(8)}  ${badAt.toFixed(1).padStart(7)}`,
     );
   }
 
-  // Condition separation check (if labels provided): does a* differ by condition?
+  // Condition separation (labels): does the redness delta differ by condition?
   if (labels.size > 0) {
     const byCond = db.prepare(
-      `SELECT condition, COUNT(*) n, ROUND(AVG(redness),1) avgA, ROUND(AVG(l),1) avgL FROM samples WHERE condition != '' GROUP BY condition`,
-    ).all() as { condition: string; n: number; avgA: number; avgL: number }[];
+      `SELECT condition, COUNT(*) n, ROUND(AVG(redness),2) avgDelta, ROUND(AVG(l),1) avgL
+       FROM samples WHERE condition != '' GROUP BY condition ORDER BY avgDelta DESC`,
+    ).all() as { condition: string; n: number; avgDelta: number; avgL: number }[];
     if (byCond.length) {
-      console.log("\nBy condition:  condition  n   a*(avg)  L*(avg)");
+      console.log("\nBy condition:  condition        n   redΔ(avg)  L*(avg)");
       for (const c of byCond) {
-        console.log(`               ${c.condition.padEnd(9)} ${String(c.n).padStart(2)}  ${String(c.avgA).padStart(6)}  ${String(c.avgL).padStart(6)}`);
+        console.log(`               ${c.condition.padEnd(15)} ${String(c.n).padStart(3)}  ${String(c.avgDelta).padStart(8)}  ${String(c.avgL).padStart(6)}`);
       }
     }
   }

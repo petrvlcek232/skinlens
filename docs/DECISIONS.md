@@ -397,3 +397,30 @@ hair/lighting cases are documented as needing segmentation + illumination
 normalisation — see [`LIMITATIONS-AND-ROADMAP.md`](./LIMITATIONS-AND-ROADMAP.md)
 §1.1–1.2. (Referenced as "ADR-017.5/phase 9.5" in an earlier draft; canonical id
 is ADR-018.)
+
+---
+
+## ADR-019 — Data-driven, tone-relative redness thresholds
+
+**Context.** Severity thresholds (e.g. redness `goodAt=2`, `badAt=14`) were
+reasonable hand-picked guesses. For a CV-company audience that's the weakest part
+of the story — "how do you know 14 is right?" The honest answer was "I don't, yet."
+
+**Decision.** Calibrate the redness thresholds from a **labeled face dataset**
+("Face Skin Problems", 1,008 faces, CC BY 4.0) via an offline SQLite harness
+(`scripts/calibrate.ts`) that runs the **same colorimetric signal as runtime**
+(`a*(cheeks) − a*(forehead)`), then derives **per-skin-tone-tier** percentile
+bands into `lib/analysis/calibration.json`. `analyze.ts` classifies the user's
+ITA/Monk tone and applies that tier's band. Raw images are gitignored (privacy +
+size); only the derived JSON + attribution + fetch instructions are committed.
+
+**Rationale.** This converts "trust my number" into "here's the measured
+distribution across 1,008 diverse faces, per tone." The data confirmed the
+inclusivity thesis concretely: the elevated-redness cutoff is higher for dark
+skin (11 vs ~7), so an absolute threshold would over-flag it. It also validated
+direction (acne/eyebags positive delta, wrinkles/dry negative). Kept tone-aware
+rather than one global band specifically because the per-tier difference is the
+finding. Honest scope recorded in `CALIBRATION.md`: Node can't use MediaPipe
+landmarks so the harness approximates regions with fixed bands; only redness is
+dataset-calibrated so far; cosmetic not clinical. The harness is dataset-agnostic
+— point it at any labeled face set and re-derive.
