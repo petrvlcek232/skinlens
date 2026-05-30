@@ -32,13 +32,22 @@ export default function Home() {
             </Feature>
           </ul>
 
-          <Link
-            href="/demo"
-            className="mt-8 inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent-ink"
-          >
-            See it embedded in a storefront
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="mt-8 flex flex-col gap-2.5">
+            <Link
+              href="/demo"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent-ink"
+            >
+              See it embedded in a storefront
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/try-on"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent-ink"
+            >
+              Try the bonus AR makeup try-on
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
 
         <div className="order-1 lg:order-2">
@@ -52,6 +61,9 @@ export default function Home() {
           <nav className="flex gap-5">
             <Link href="/demo" className="hover:text-ink">
               Brand demo
+            </Link>
+            <Link href="/try-on" className="hover:text-ink">
+              Makeup try-on
             </Link>
             <Link href="/embed" className="hover:text-ink">
               Embed
