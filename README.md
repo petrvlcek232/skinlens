@@ -13,6 +13,11 @@ to the standard a brand could embed — not a clinical instrument (see
 > **Bonus AR:** [`/try-on`](https://skin-advisor-demo-xi.vercel.app/try-on) ·
 > **Embedded in a fake storefront:** [`/demo`](https://skin-advisor-demo-xi.vercel.app/demo)
 
+> **📖 Start with the story:** [`docs/STORY.md`](./docs/STORY.md) — why I built
+> this, what each test photo taught me about why skin analysis is hard, the
+> dataset calibration, the simulated-now/real-later AI layer, and the full
+> roadmap to production. It's the narrative; the other docs are the reference.
+
 <!-- Add a short screen recording of the live mesh heatmap scan here:
 ![SkinLens scan](docs/media/demo.gif) -->
 
@@ -85,7 +90,7 @@ Open http://localhost:3000 and allow the camera (or upload a photo).
 
 ```bash
 npm run typecheck    # tsc --noEmit
-npm test             # Vitest (66 tests)
+npm test             # Vitest (119 tests)
 npm run build        # production build
 ```
 
@@ -95,8 +100,17 @@ npm run build        # production build
 
 ## Documentation
 
-- [`docs/DECISIONS.md`](./docs/DECISIONS.md) — Architecture Decision Records: the
-  *why* behind every significant choice and trade-off.
+- [`docs/STORY.md`](./docs/STORY.md) — **start here.** The full narrative: why,
+  research, the hard-problem realization, every test-photo finding, dataset
+  calibration, the AI layer, and the production roadmap.
+- [`docs/DECISIONS.md`](./docs/DECISIONS.md) — Architecture Decision Records (22):
+  the *why* behind every significant choice and trade-off.
+- [`docs/CALIBRATION.md`](./docs/CALIBRATION.md) — data-driven, tone-relative
+  threshold calibration from a 1,008-face dataset (offline SQLite harness).
+- [`docs/SKIN-TONE-METHODOLOGY.md`](./docs/SKIN-TONE-METHODOLOGY.md) — the ITA →
+  Monk skin-tone science.
+- [`docs/AI-ARCHITECTURE.md`](./docs/AI-ARCHITECTURE.md) — the simulated-now,
+  real-LLM-later AI coach layer (RAG, vector store, privacy).
 - [`docs/BUILD-JOURNAL.md`](./docs/BUILD-JOURNAL.md) — the build narrative,
   including the dead ends and why each iteration happened.
 - [`docs/VALIDATION.md`](./docs/VALIDATION.md) — accuracy positioning + test

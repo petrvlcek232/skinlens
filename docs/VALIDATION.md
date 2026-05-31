@@ -48,8 +48,14 @@ The pure logic is unit-tested (Vitest) so the guarantees can't silently regress:
 | **Tone-robustness** — dark skin scores like light when uniform | `lib/analysis/metrics.test.ts`, `analyze.test.ts` |
 | Metrics respond to real concerns (redness, dark under-eye, uneven tone) | `lib/analysis/metrics.test.ts` |
 | Fine-lines directionality (horizontal vs vertical) | `lib/analysis/texture.test.ts` |
+| Spot/blemish density + tone-robust spot detection | `lib/analysis/blemishes.test.ts` |
+| Skin tone: ITA formula, ITA→Monk bins, light/medium/dark tiers | `lib/vision/skin-tone.test.ts` |
+| Data-driven calibration loads + tier thresholds valid | `lib/analysis/calibration.test.ts` |
 | Lighting gate: dim / bright / uneven; dark-but-even passes | `lib/vision/lighting.test.ts` |
 | Recommendations: core always, targeted only when flagged, deterministic | `lib/recommendations/recommend.test.ts` |
+| AI coach: deterministic, honest framing, follow-ups | `lib/coach/template-coach.test.ts` |
+
+Total: **119 tests**, all green, run in CI on every push.
 
 ## What real, production-grade validation would require
 
@@ -72,7 +78,16 @@ on, not a medical device.
 
 ## Note on cross-person comparison
 
-This demo intentionally does **not** scrape or collect other people's faces to
-build a comparison set — that would be a privacy and licensing problem. The whole
-point of the on-device design is that no face data is gathered anywhere. Genuine
-cross-population validation belongs on a properly consented, licensed dataset.
+The running app intentionally does **not** store scans or compare you against
+other users — there is no database; everything is on-device. The score is
+therefore meaningful **intra-person, over time** (the trend sparkline), **not as a
+ranking between people** — see [`LIMITATIONS-AND-ROADMAP.md`](./LIMITATIONS-AND-ROADMAP.md)
+§1.6 (the "family test") and [`DECISIONS.md`](./DECISIONS.md) ADR-022. A true
+cross-person "skin age" score needs a trained model benchmarked against an age/
+tone-matched reference population — documented as a production step, not faked
+here.
+
+The thresholds *are* data-driven, but via **offline calibration** against a
+licensed dataset (Roboflow "Face Skin Problems", 1,008 faces) — only the derived
+anonymous thresholds ship; no faces are committed or collected. See
+[`CALIBRATION.md`](./CALIBRATION.md).
