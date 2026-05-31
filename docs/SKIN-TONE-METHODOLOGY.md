@@ -63,31 +63,36 @@ for tone-relative thresholds.
 ## How skin tone feeds the rest of the pipeline
 
 The coarse tier (light/medium/dark) is the basis for **tone-relative severity
-thresholds**: a redness or evenness delta should be judged against the person's
-own tone group, not an absolute cutoff (the inclusivity rule, ADR-008). Today the
-concern thresholds are still heuristic; the data-driven calibration that uses
-these tiers is described next.
+thresholds**: a redness delta is judged against the person's own tone group, not
+an absolute cutoff (the inclusivity rule, ADR-008). The clear-skin mask from spot
+detection (ADR-020) is also reused here, so freckles/spots don't darken the tone
+estimate.
 
-## Calibration (data-driven thresholds) — status
+## Calibration (data-driven thresholds) — DONE
 
-The concern→score thresholds in `analyzeScan` (e.g. redness `scoreFromDelta(Δ, 2,
-14)`) are currently **heuristic estimates**, honestly flagged as such. The planned
-upgrade replaces them with **percentile thresholds computed per tone tier** from a
-sample of frontal faces:
+The redness thresholds are **no longer hand-picked** — they're calibrated from a
+real dataset and shipped in `lib/analysis/calibration.json`. Full method +
+results: [`CALIBRATION.md`](./CALIBRATION.md), ADR-019, BUILD-JOURNAL Phase 12.
 
-1. Run the vision pipeline over a set of diverse frontal faces.
-2. For each face: compute ITA → tone tier, and the concern deltas.
-3. Store measurements (no images) in a local **SQLite** dataset.
-4. Within each tier, set severity by **percentile rank** of each delta
-   (e.g. 0–33 mild / 33–66 moderate / 66–100 elevated) → emit a
-   `calibration.json` the app imports.
+How it works: an offline SQLite harness (`scripts/calibrate.ts`) runs the **same
+colour signal the app uses at runtime** (cheek-vs-forehead `a*` delta) over every
+image, computes ITA → tone tier, and derives **per-tier percentile thresholds**.
+The result confirmed the inclusivity thesis with data — the "elevated redness"
+cutoff is higher for dark skin (11) than light (7), proving an absolute threshold
+would over-flag darker skin.
 
-**Data note:** the Google **SCIN** dataset (eFST/eMST labels) was evaluated and
-**rejected** for this — its faces are redacted and ~89% are body-area condition
-photos, not frontal selfies. A diverse frontal-face set (e.g. an FFHQ subset, or
-self-supplied consented photos) is the practical source; ITA itself is the
-label-free tone classifier, so no manual tone labels are needed. See
-`LIMITATIONS-AND-ROADMAP.md` §4.
+**Dataset decision.** Google's **SCIN** (eFST/eMST labels) was evaluated and
+**rejected** — its faces are redacted and ~89% are body-area disease photos, not
+frontal selfies, and its disease labels would imply a medical claim. The project
+is cosmetic, so the right data is *common cosmetic phenomena* — we used Roboflow's
+**"Face Skin Problems"** (1,008 frontal faces, CC BY 4.0, multi-label across acne,
+blackheads, oily skin, wrinkles, etc., diverse tones). Raw images are gitignored;
+only the derived `calibration.json` + attribution ship. See
+[`../datasets/README.md`](../datasets/README.md).
+
+Honest scope: only **redness** is dataset-calibrated so far; the other concerns
+still use documented heuristic bands. The same harness calibrates them once a
+labelled signal exists per concern.
 
 ## Sources
 

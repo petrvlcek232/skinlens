@@ -29,15 +29,21 @@ to the standard a brand could embed — not a clinical instrument (see
   ~60fps, with a live, continuous **heatmap over the face** clipped to the mesh.
 - **Multi-frame, robust capture** — averages ~100+ frames with per-frame
   outlier rejection (drops glare/beard/shadow) for a stable result.
-- **Explainable, inclusive metrics** — redness, tone evenness, under-eye,
-  texture & fine lines — each measured **relative to your own skin**, so they
-  behave the same across skin tones (enforced by tests).
+- **Explainable, inclusive metrics** — spots & blemishes, redness, tone evenness,
+  under-eye, texture & fine lines — each measured **relative to your own skin**,
+  so they behave the same across skin tones (enforced by tests).
+- **Skin tone (ITA → Monk)** — colorimetric skin-tone estimate on the inclusive
+  Monk scale; redness thresholds are **data-calibrated per tone tier** from a
+  1,008-face dataset (offline SQLite harness — no DB at runtime).
 - **Lighting quality gate** — exposure + uniformity checks (ISO/IEC 29794-5
   style) before a scan, with a confidence on the result.
-- **Personalized routine** — concerns → a deterministic, reason-tied product
-  routine over a (fictional) catalog.
-- **Scan-to-scan deltas + on-device history** — see responsiveness and a trend
-  over time (localStorage, no account).
+- **AI skin coach** — a natural-language reading of the scan, produced **on-device
+  (rule-based, labelled as such)** behind a `CoachProvider` interface a real LLM
+  drops into (see [`docs/AI-ARCHITECTURE.md`](./docs/AI-ARCHITECTURE.md)).
+- **Personalized routine** — concerns → a deterministic, evidence-cited product
+  routine (real products, clinical evidence levels).
+- **Scan-to-scan deltas + on-device trend** — per-person, no account; the score
+  is intra-person over time, not a ranking between people.
 - **Photo-upload fallback** — analyze a still if there's no camera.
 - **Embeddable** — `/embed` is a chrome-free widget; `/demo` is a fictional
   storefront that embeds it via one `<iframe>`.
