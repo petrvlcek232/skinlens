@@ -605,3 +605,32 @@ LLM drops in behind one interface.* +5 tests (119 total).
 **Doc-drift note:** found that phases 12–13's journal entries and ADR-020 hadn't
 persisted from an earlier interrupted multi-edit batch; restored here, and the ADR
 sequence audited back to a clean 001–021.
+
+---
+
+## Phase 15 — The family test (intra-person vs cross-person scoring)
+
+The sharpest test yet: scanned across one family on a real phone. A 6-year-old
+with clear skin scored ~66, a 40-year-old ~90, an adult with active breakouts
+~79. That ordering looks wrong — and surfacing *why* it isn't a bug is the most
+honest finding in the project.
+
+Every metric is **relative to the same face** (ADR-008) — the inclusivity
+guarantee that makes scores tone-independent. The flip side: the number is only
+meaningful **intra-person, over time**, never as a leaderboard. Two concrete
+effects the family exposed: freckles on otherwise-clear skin over-flag the spot
+density (a freckle reads like a pimple — see 1.4), and diffuse acne shifts its own
+per-face baseline so individual lesions deviate less.
+
+Response (no faking): (1) the result now says plainly "measured relative to your
+own skin — track it over time, not as a ranking between people," and leans on the
+per-person trend sparkline, which *is* a valid comparison. (2) Documented as
+LIMITATIONS §1.6 + ADR-022, including the real fix — a "skin age" cohort benchmark
+(what Revieve/Perfect Corp do) needs a trained model over tens of thousands of
+age/tone-labelled images and a global reference distribution, which is exactly the
+model-and-data layer we deliberately don't have.
+
+This is the through-line of the whole build: every new face is a new challenge,
+the honest move is to measure what classical CV genuinely can, label the score
+correctly (intra-person), and document the rest as a model problem — not dress a
+heuristic up as a clinical, comparable grade.

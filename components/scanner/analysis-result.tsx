@@ -89,6 +89,10 @@ export function AnalysisResult({
               Skin tone: {analysis.skinTone.label}
             </span>
           )}
+          <p className="mt-2 max-w-[15rem] text-center text-[10px] leading-snug text-ink-soft">
+            Measured relative to your own skin — track it over time, not as a
+            ranking between people.
+          </p>
         </div>
         {/* min-w-0 lets this flex child shrink below the chart's intrinsic size;
             overflow-hidden contains any Recharts ResponsiveContainer overshoot. */}

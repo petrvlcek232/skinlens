@@ -479,3 +479,24 @@ and the face on-device (the model would get anonymous numbers, never the image).
 Labelling the simulation honestly is the point: a deliberate, documented choice
 beats bolting on an API to look impressive. Full design (RAG, prompt shape,
 privacy options, what real AI adds) in docs/AI-ARCHITECTURE.md.
+
+---
+
+## ADR-022 — Score is intra-person; reframed, not faked as comparable
+
+**Context.** A family test (child ~66 clear skin, adult ~90, breakouts ~79)
+showed overall scores don't rank sensibly between people — because every metric
+is relative to the same face (ADR-008).
+
+**Decision.** Keep the relative design (it's the inclusivity guarantee), but
+**reframe** the score as intra-person: UI states "measured relative to your own
+skin — track it over time, not as a ranking between people," and the product
+emphasises the per-person trend sparkline. Do NOT invent a cross-person absolute
+score we can't back.
+
+**Rationale.** A cross-person comparable number is a real thing — Revieve/Perfect
+Corp ship it as "skin age," a model benchmarked against an age/tone-matched
+reference population. That requires a trained model + tens of thousands of
+labelled images + a global distribution (ADR-006), out of scope here. The honest
+product is the intra-person trend; faking a comparable score would be the exact
+overclaim this project refuses. Documented in LIMITATIONS §1.6 + journal phase 15.
