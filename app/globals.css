@@ -17,26 +17,37 @@
  * the analyzer is a trust surface, so we stay bright and clean.
  */
 @theme {
-  --color-paper: #faf7f3;
-  --color-paper-raised: #ffffff;
-  --color-ink: #1c1a19;
-  --color-ink-soft: #6b6560;
-  --color-line: #ebe4dc;
+  /*
+   * "Champagne & Slate" — Parisian Luxe design system (from Google Stitch).
+   * Clinical elegance: warm champagne surfaces, muted-gold primary, slate ink.
+   * Token names are kept stable (paper/ink/accent/sage/amber) so the whole app
+   * re-skins from here without touching components.
+   */
+  --color-paper: #fcf9f5;          /* champagne surface */
+  --color-paper-raised: #ffffff;   /* surface-container-lowest */
+  --color-ink: #1c1c1a;            /* slate on-surface */
+  --color-ink-soft: #4e4639;       /* on-surface-variant (warm taupe) */
+  --color-line: #d1c5b4;           /* outline-variant */
 
-  --color-accent: #e0654a;
-  --color-accent-soft: #f7d9d0;
-  --color-accent-ink: #a8401f;
+  /* Primary = muted gold (sparing, premium CTAs + highlights) */
+  --color-accent: #775a19;         /* primary (gold, AA on champagne) */
+  --color-accent-soft: #e9c176;    /* primary-fixed-dim (light gold) */
+  --color-accent-ink: #4e3700;     /* on-primary-container */
 
-  --color-sage: #5b8a72;
-  --color-sage-soft: #d8e7df;
+  /* "Good / healthy" signal — kept as a calm slate-green, toned for the palette */
+  --color-sage: #5f7a55;
+  --color-sage-soft: #e0e6d8;
 
-  --color-amber: #c98a2b;
-  --color-amber-soft: #f2e3c8;
+  /* Warm gold accent for secondary highlights */
+  --color-amber: #c5a059;          /* primary-container (champagne gold) */
+  --color-amber-soft: #f0e6cf;
 
-  --radius-card: 1.25rem;
+  --radius-card: 0.5rem;           /* soft-clinical 8px corners */
 
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
+  --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
+  --font-label: var(--font-montserrat), var(--font-geist-sans), sans-serif;
 }
 
 html {

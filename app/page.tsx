@@ -5,22 +5,24 @@ import { SkinAdvisorWidget } from "@/components/scanner/skin-advisor-widget";
 export default function Home() {
   return (
     <main className="flex-1">
-      <section className="mx-auto grid max-w-6xl gap-12 px-6 py-12 lg:grid-cols-2 lg:items-center lg:gap-16 lg:py-20">
+      <section className="mx-auto grid max-w-6xl gap-12 px-6 py-14 lg:grid-cols-[5fr_7fr] lg:items-center lg:gap-20 lg:py-28">
         <div className="order-2 animate-fade-up lg:order-1">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-paper-raised px-3 py-1 text-xs font-medium text-ink-soft">
-            <Sparkles className="h-3.5 w-3.5 text-accent" />
-            On-device AI skin analysis
+          <span className="inline-flex items-center gap-2 text-[0.7rem] font-label font-semibold uppercase tracking-[0.18em] text-accent">
+            <span className="h-px w-6 bg-accent/50" />
+            Parisian AI Skin Analysis
           </span>
-          <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight text-ink sm:text-5xl">
-            See your skin the way <span className="text-accent">AI does.</span>
+          <h1 className="mt-6 font-display text-[2.75rem] font-medium leading-[1.05] tracking-[-0.01em] text-ink sm:text-6xl">
+            See your skin
+            <br />
+            <span className="italic text-accent">the way AI does.</span>
           </h1>
-          <p className="mt-5 max-w-md text-lg leading-relaxed text-ink-soft">
+          <p className="mt-6 max-w-md text-lg leading-relaxed text-ink-soft">
             A privacy-first skin analysis widget. Point your camera, and computer
             vision reads six facial regions to map redness, texture, tone
             evenness and more — entirely in your browser.
           </p>
 
-          <ul className="mt-8 space-y-3">
+          <ul className="mt-9 space-y-3.5">
             <Feature icon={<Cpu className="h-4 w-4 text-accent" />}>
               Real-time face mesh tracking with MediaPipe (478 landmarks)
             </Feature>
@@ -32,20 +34,20 @@ export default function Home() {
             </Feature>
           </ul>
 
-          <div className="mt-8 flex flex-col gap-2.5">
+          <div className="mt-9 flex flex-col gap-3">
             <Link
               href="/demo"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent-ink"
+              className="inline-flex w-fit items-center gap-2 rounded bg-ink px-6 py-3 font-label text-xs font-semibold uppercase tracking-[0.12em] text-amber-soft transition-colors hover:bg-accent-ink"
             >
               See it embedded in a storefront
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/try-on"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent-ink"
+              className="inline-flex w-fit items-center gap-1.5 px-1 font-label text-xs font-medium uppercase tracking-[0.12em] text-ink-soft transition-colors hover:text-accent"
             >
               Try the bonus AR makeup try-on
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
